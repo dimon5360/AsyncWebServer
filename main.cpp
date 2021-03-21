@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <utility>
+#include <algorithm>
 
 /* boost C++ lib headers */
 #include <boost/asio.hpp> 
@@ -11,8 +12,7 @@
 #include <boost/bind/bind.hpp>
 #include <boost/bind/placeholders.hpp>
 
-#include <spdlog/spdlog.h>
-
+/* deployment definitions */
 #define LOG_FUNC        0
 #define PRINT_MESSAGE   1
 
@@ -42,9 +42,6 @@ public:
      */
     K GetAverage(K value) {
         std::lock_guard<std::mutex> lk(this->_m);
-        if (_set.empty()) {
-            return static_cast<K>(0);
-        }
         /* New random value is already in container
          * We don't need to calculate new average of numbers' squares */
         if (IsContain(value)) {
@@ -60,7 +57,7 @@ public:
     }
 }; 
 
-guarded_set<int> _set;
+guarded_set<uint64_t> _set;
 
 class tcp_connection
 {
@@ -77,47 +74,111 @@ public:
         return socket_;
     }
 
-    void start_read()
-    {
-#if LOG_FUNC
-        std::cout << __func__ << "()\n";
-#endif /* LOG_FUNC */        
+    void start_auth()
+    {  
         socket_.async_read_some(boost::asio::buffer(buf),
-            boost::bind(&tcp_connection::handle_read, this, 
+            boost::bind(&tcp_connection::handle_auth, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
-    }
-
-    void start_write()
-    {
-#if LOG_FUNC
-        std::cout << __func__ << "()\n";
-#endif /* LOG_FUNC */        
-        std::stringstream resp;
-        resp << "hello user id=" << id_;
-        std::string msg_ = "hello user id=" + id_;
-        boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
-            boost::bind(&tcp_connection::handle_write, this,
-                boost::asio::placeholders::error));
     }
 
     tcp_connection(boost::asio::io_service& io_service_, uint32_t id)
         : socket_(io_service_),
         id_(id)
     {
+        /* ... */
     }
 
-    ~tcp_connection() { 
+    ~tcp_connection() {
         std::cout << "Close current connection\n";
     };
 
 private:
 
-    void handle_write(const boost::system::error_code& error)
+    void to_lower(std::string& str) {
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+    }
+
+    void handle_auth(const boost::system::error_code& error,
+        std::size_t bytes_transferred)
     {
-#if LOG_FUNC
-        std::cout << __func__ << "()\n";
-#endif /* LOG_FUNC */        
+        if (!error)
+        {
+            std::string hello_msg{ buf.data(), bytes_transferred };
+
+#if PRINT_MESSAGE
+            std::cout << "Read " << bytes_transferred << " bytes: \"";
+            std::cout << hello_msg << "\"\n";
+#endif /* PRINT_MESSAGE */ 
+
+            std::stringstream resp;
+            resp << hello_msg << id_;
+
+#if PRINT_MESSAGE
+            std::cout << "Write " << resp.str().size() << " bytes: \"";
+            std::cout << resp.str() << "\"\n";
+#endif /* PRINT_MESSAGE */ 
+
+            boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
+                boost::bind(&tcp_connection::handle_write, this,
+                    boost::asio::placeholders::error));
+        }
+        else {
+            std::cout << "Authentication error: " << error.message() << "\n";
+        }
+    }
+
+    void start_read()
+    {    
+        socket_.async_read_some(boost::asio::buffer(buf),
+            boost::bind(&tcp_connection::handle_read, this, 
+                boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
+    }
+
+    void handle_read(const boost::system::error_code& error,
+        std::size_t bytes_transferred)
+    {
+        if (!error)
+        {
+            std::string msg{ buf.data(), bytes_transferred };
+
+#if PRINT_MESSAGE
+            std::cout << "Read " << bytes_transferred << " bytes: \"";
+            std::cout << msg << "\"\n";
+#endif /* PRINT_MESSAGE */        
+
+            /* support of different register */
+            to_lower(msg);
+
+            /* check that auth msg corresponds to default value */
+            if (msg.substr(0, tech_req_msg.size()).compare(tech_req_msg) == 0) {
+                auto number = msg.substr(tech_req_msg.size());
+
+                std::stringstream int_conv(number);
+
+                int value;
+                int_conv >> value;
+                uint64_t summ = _set.GetAverage(value);
+                start_write(summ);
+            }
+        }
+        else {
+            std::cout << "Reading error: " << error.message() << "\n";
+        }
+    }
+
+    void start_write(uint64_t value)
+    {    
+        std::stringstream resp;
+        resp << tech_resp_msg << value;
+        boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
+            boost::bind(&tcp_connection::handle_write, this,
+                boost::asio::placeholders::error));
+    }
+
+    void handle_write(const boost::system::error_code& error)
+    {      
         if (!error)
         {
             start_read();
@@ -127,33 +188,16 @@ private:
         }
     }
 
-    void handle_read(const boost::system::error_code& error,
-        std::size_t bytes_transferred)
-    {
-#if LOG_FUNC
-        std::cout << __func__ << "()\n";
-#endif /* LOG_FUNC */        
-        if (!error)
-        {
-#if PRINT_MESSAGE
-            std::cout << "Read " << bytes_transferred << " bytes: \"";
-            std::cout.write(buf.data(), bytes_transferred) << "\"\n";
-#endif /* PRINT_MESSAGE */        
-            // TODO: parse input data to get new random number
-            /*int k = 0;
-            int summ = _set.GetAverage(k);*/
-            start_write();
-        }
-        else {
-            std::cout << "Reading error: " << error.message() << "\n";
-        }
-    }
 
-    uint32_t id_;
     boost::asio::ip::tcp::socket socket_;
+
+    const std::string hello_msg = std::string("hello user id=");
+    const std::string tech_req_msg = std::string("number=");
+    const std::string tech_resp_msg = std::string("summ=");
+    uint32_t id_;
+
     enum { max_length = 1024 };
     boost::array<char, max_length> buf = { { 0 } };
-    char data_[max_length] = { 0 };
 };
 
 class async_tcp_server {
@@ -170,7 +214,7 @@ private:
         if (!error)
         {
             std::cout << "New connection accepted. Start reading data.\n";
-            new_connection->start_read();
+            new_connection->start_auth();
         }
         start_accept();
     }
@@ -214,7 +258,6 @@ public:
 int main() {
 
     std::cout << "Hello, user." << std::endl;
-    //boost::asio::io_context io_context;
     boost::asio::io_service ios;
     async_tcp_server serv(ios);
     ios.run();
