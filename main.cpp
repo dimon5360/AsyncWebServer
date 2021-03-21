@@ -5,16 +5,96 @@
 #include <memory>
 #include <utility>
 #include <algorithm>
+#include <chrono>
+#include <thread>
 
 /* boost C++ lib headers */
+#include <boost/format.hpp>
 #include <boost/asio.hpp> 
 #include <boost/array.hpp> 
 #include <boost/bind/bind.hpp>
 #include <boost/bind/placeholders.hpp>
 
 /* deployment definitions */
-#define LOG_FUNC        0
-#define PRINT_MESSAGE   1
+#define CONSOLE_LOGGER      1
+#define FILE_LOGGER         1
+
+#if FILE_LOGGER
+#include <boost/date_time.hpp>
+#include <fstream>
+#endif /* FILE_LOGGER */
+
+class file_logger {
+
+private:
+
+#if FILE_LOGGER
+    std::ofstream log_file;
+    std::stringstream filename;
+    std::mutex _m;
+#endif /* FILE_LOGGER */
+
+    int open() noexcept {
+        log_file.open(filename.str());
+        if (!log_file.is_open())
+        {
+            std::cout << "Log file opening is failed\n\n";
+            return 1;
+        }
+        write(boost::str(boost::format("Log file \'%1%\' is opened.\n") % filename.str()));
+    }
+
+    void close() noexcept {
+#if FILE_LOGGER
+        std::lock_guard<std::mutex> lk(this->_m);
+        if (log_file.is_open()) {
+            log_file.close();
+        }
+#endif /* FILE_LOGGER */
+    }
+
+    uint64_t GetCurrTimeMs() {
+        const auto systick_now = std::chrono::system_clock::now();
+        const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(systick_now.time_since_epoch());
+        return nowMs.count();
+    }
+
+public:
+    file_logger() {
+
+#if FILE_LOGGER
+        using namespace boost::posix_time;
+        using namespace boost::gregorian;
+
+        ptime now = second_clock::local_time();
+        filename << "web_server_log " << GetCurrTimeMs() << ".log";
+        open();
+
+        write(boost::str(boost::format("Start time \'%1%\' is opened.\n") % to_simple_string(now)));
+#endif /* FILE_LOGGER */
+    }
+
+    ~file_logger() {
+        close();
+    }
+
+    void write(std::string log) noexcept {
+        using namespace boost::posix_time;
+        using namespace boost::gregorian;
+
+        ptime now = second_clock::local_time();
+        std::string time = boost::str(boost::format("%1%: ") % to_simple_string(now));
+#if CONSOLE_LOGGER
+        std::cout << time << log;
+#endif /* CONSOLE_LOGGER */
+#if FILE_LOGGER
+        std::lock_guard<std::mutex> lk(this->_m);
+        log_file << time << log;
+#endif /* FILE_LOGGER */
+    }
+};
+
+static file_logger logger;
 
 template <class K> 
 class guarded_set {
@@ -55,13 +135,106 @@ public:
             return static_cast<K>(squaresSumm / _set.size());
         }
     }
+
+    std::string Dump() {
+        std::stringstream ss;
+
+        std::lock_guard<std::mutex> lk(this->_m);
+        for (auto& v : _set) {
+            ss << v << "\n";
+        }
+
+        return ss.str();
+    }
 }; 
 
-guarded_set<uint64_t> _set;
+static guarded_set<uint64_t> _gset;
+
+class file_dump {
+
+private:
+
+    const uint64_t dump_interval_ms = 20000;// *60 * 5; // 5 minutes
+
+    std::ofstream log_dump;
+    std::stringstream filename;
+    std::mutex _m;
+
+    int open() noexcept {
+        log_dump.open(filename.str(), std::ios::out | std::ios::binary);
+        if (!log_dump.is_open())
+        {
+            std::cout << "Dump file opening is failed\n\n";
+            return 1;
+        }
+        std::cout << "Dump file \'" << filename.str() << "\' is opened.\n";
+    }
+
+    void close() noexcept {
+        if (log_dump.is_open()) {
+            log_dump.close();
+        }
+    }
+
+    void make_dump() noexcept {
+        using namespace boost::posix_time;
+        using namespace boost::gregorian;
+        ptime now = second_clock::local_time();
+
+        log_dump << "Dump: " << to_simple_string(now) << ":\n";
+        log_dump << _gset.Dump();
+        log_dump << "\n\n";
+    }
+
+    uint64_t GetCurrTimeMs() {
+        const auto systick_now = std::chrono::system_clock::now();
+        const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(systick_now.time_since_epoch());
+        return nowMs.count();
+    }
+
+public:
+
+    file_dump() {
+        using namespace boost::posix_time;
+        using namespace boost::gregorian;
+
+        ptime now = second_clock::local_time();
+        filename << "web_server_dump " << GetCurrTimeMs() << ".log";
+        open();
+
+        std::thread t(&file_dump::handle, this);
+        t.detach();
+    }
+
+    ~file_dump() {
+        close();
+    }
+
+    void handle() {
+
+        uint64_t prevDumpTime = GetCurrTimeMs();
+
+        for (;;) {
+
+            /* if uint64_t overload */
+            if (GetCurrTimeMs() < prevDumpTime) {
+                prevDumpTime = GetCurrTimeMs();
+            }
+            else if (GetCurrTimeMs() - prevDumpTime > dump_interval_ms){
+                make_dump();
+                prevDumpTime = GetCurrTimeMs();
+            }
+
+            std::chrono::system_clock::time_point timePoint =
+                std::chrono::system_clock::now() + std::chrono::seconds(10);
+            std::this_thread::sleep_until(timePoint);
+        }
+    }
+};
 
 class tcp_connection
 {
-public: 
+public:
 
     typedef boost::shared_ptr<tcp_connection> connection_ptr;
     static connection_ptr create(boost::asio::io_service& io_service, uint32_t id)
@@ -90,7 +263,7 @@ public:
     }
 
     ~tcp_connection() {
-        std::cout << "Close current connection\n";
+        logger.write("Close current connection\n");
     };
 
 private:
@@ -104,34 +277,38 @@ private:
     {
         if (!error)
         {
-            std::string hello_msg{ buf.data(), bytes_transferred };
+            std::string in_hello_msg{ buf.data(), bytes_transferred };
 
-#if PRINT_MESSAGE
-            std::cout << "Read " << bytes_transferred << " bytes: \"";
-            std::cout << hello_msg << "\"\n";
-#endif /* PRINT_MESSAGE */ 
+            {
+                std::stringstream log;
+
+                log << "<< "<< "\"" << in_hello_msg << "\" [" << bytes_transferred << "]\n";
+                logger.write(log.str());
+            }
 
             std::stringstream resp;
             resp << hello_msg << id_;
 
-#if PRINT_MESSAGE
-            std::cout << "Write " << resp.str().size() << " bytes: \"";
-            std::cout << resp.str() << "\"\n";
-#endif /* PRINT_MESSAGE */ 
+            {
+                std::stringstream log;
+                log << ">> " << "\"" << resp.str() << "\" [" << resp.str().size() << "]\n";
+                logger.write(log.str());
+            }
 
             boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
                 boost::bind(&tcp_connection::handle_write, this,
                     boost::asio::placeholders::error));
         }
         else {
-            std::cout << "Authentication error: " << error.message() << "\n";
+            shutdown(boost::asio::ip::tcp::socket::shutdown_send, error.value());
+            logger.write(boost::str(boost::format(" %1% \n") % error.message()));
         }
     }
 
     void start_read()
     {    
         socket_.async_read_some(boost::asio::buffer(buf),
-            boost::bind(&tcp_connection::handle_read, this, 
+            boost::bind(&tcp_connection::handle_read, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
     }
@@ -141,40 +318,49 @@ private:
     {
         if (!error)
         {
-            std::string msg{ buf.data(), bytes_transferred };
+            std::string in_msg{ buf.data(), bytes_transferred };
 
-#if PRINT_MESSAGE
-            std::cout << "Read " << bytes_transferred << " bytes: \"";
-            std::cout << msg << "\"\n";
-#endif /* PRINT_MESSAGE */        
+            {
+                std::stringstream log;
+                log << "<< " << "\"" << in_msg << "\" [" << bytes_transferred << "]\n";
+                logger.write(log.str());
+            }
 
             /* support of different register */
-            to_lower(msg);
+            to_lower(in_msg);
 
             /* check that auth msg corresponds to default value */
-            if (msg.substr(0, tech_req_msg.size()).compare(tech_req_msg) == 0) {
-                auto number = msg.substr(tech_req_msg.size());
+            if (in_msg.substr(0, tech_req_msg.size()).compare(tech_req_msg) == 0) {
+                auto number = in_msg.substr(tech_req_msg.size());
 
                 std::stringstream int_conv(number);
 
                 int value;
                 int_conv >> value;
-                uint64_t summ = _set.GetAverage(value);
+                uint64_t summ = _gset.GetAverage(value);
                 start_write(summ);
             }
         }
         else {
-            std::cout << "Reading error: " << error.message() << "\n";
+            shutdown(boost::asio::ip::tcp::socket::shutdown_send, error.value());
+            logger.write(boost::str(boost::format(" %1% \n") % error.message()));
         }
     }
 
     void start_write(uint64_t value)
-    {    
+    {
         std::stringstream resp;
         resp << tech_resp_msg << value;
+
+        {
+            std::stringstream log;
+            log << ">> " << "\"" << resp.str() << "\" [" << resp.str().size() << "]\n";
+            logger.write(log.str());
+        }
+
         boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
             boost::bind(&tcp_connection::handle_write, this,
-                boost::asio::placeholders::error));
+            boost::asio::placeholders::error));
     }
 
     void handle_write(const boost::system::error_code& error)
@@ -184,14 +370,15 @@ private:
             start_read();
         }
         else {
-            std::cout << "Writing error: " << error.message() << std::endl;
+            shutdown(boost::asio::ip::tcp::socket::shutdown_send, error.value());
+            logger.write(boost::str(boost::format(" %1% \n") % error.message()));
         }
     }
-
 
     boost::asio::ip::tcp::socket socket_;
 
     const std::string hello_msg = std::string("hello user id=");
+    const std::string tech_msg_header = std::string("user id=");
     const std::string tech_req_msg = std::string("number=");
     const std::string tech_resp_msg = std::string("summ=");
     uint32_t id_;
@@ -213,8 +400,11 @@ private:
     {
         if (!error)
         {
-            std::cout << "New connection accepted. Start reading data.\n";
+            logger.write("New connection accepted. Start reading data.\n");
             new_connection->start_auth();
+        }
+        else {
+            shutdown(boost::asio::ip::tcp::socket::shutdown_send, error.value());
         }
         start_accept();
     }
@@ -223,12 +413,10 @@ private:
     void start_accept() {
         static uint32_t currIdConn = 1;
 
-#if LOG_FUNC
-        std::cout << __func__ << "()\n";
-#endif /* LOG_FUNC */        
-        std::cout << "Wait new connection ... \n";
         tcp_connection::connection_ptr new_connection =
             tcp_connection::create(io_service_, currIdConn);
+
+        logger.write(boost::str(boost::format("Start listening to %1% port \n") % 4059));
 
         if (!clientMap.contains(currIdConn)) {
             clientMap.insert({ currIdConn, new_connection });
@@ -254,13 +442,32 @@ public:
     ~async_tcp_server() { /**/ };
 };
 
+#include <windows.h>
+
+static void EscapeWait() {
+    while (GetAsyncKeyState(VK_SPACE) == 0) {
+        Sleep(10);
+    }
+    exit(0);
+}
 
 int main() {
 
-    std::cout << "Hello, user." << std::endl;
-    boost::asio::io_service ios;
-    async_tcp_server serv(ios);
-    ios.run();
+    SetConsoleOutputCP(1251);
+    logger.write("Press SPACE to exit...\n");
+    std::thread ext(&EscapeWait);
+    std::unique_ptr<file_dump> dump = std::make_unique<file_dump>();
+    try
+    {
+        boost::asio::io_service ios;
+        async_tcp_server serv(ios);
+        ios.run();
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
+
     return 0;
 }
 

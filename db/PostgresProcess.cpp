@@ -2,7 +2,6 @@
 /* std C++ lib headers */
 #include <iostream>
 #include <ctime>
-#include <iomanip> // put_time
 
 #include <boost/date_time.hpp>
 
