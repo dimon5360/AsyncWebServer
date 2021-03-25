@@ -2,36 +2,22 @@
 /* std C++ lib headers */
 #include <iostream>
 #include <ctime>
+#include <cstdint>
 
+/* boost C++ lib headers */
 #include <boost/date_time.hpp>
 
 /* extern C++ lib pqxx headers */
 #include <pqxx/pqxx>
 #include <spdlog/spdlog.h>
 
+
+/* local C++ headers */
 #include "PostgresProcessor.h"
 
-import IPostgresProcess;
-
-/****************************************************
- *  @brief  Constructor of PostgresProcessor
- */
-Postgres::PostgresProcessor::PostgresProcessor() {
-#if TEST_DB_FILL
-    test_AddUsersInDb();
-#endif /* TEST_DB_FILL */
-}
-
-/****************************************************
- *  @brief  Destructor of PostgresProcessor
- */
-Postgres::PostgresProcessor::~PostgresProcessor() {
-
-}
-
-
-Postgres::postres_err_t Postgres::PostgresProcessor::InitializeDatabaseConnection() {
-
+postres_err_t PostgresProcessor::InitializeDatabaseConnection() {
+    id_ = 0;
+        
     try
     {
         pqxx::connection C{ "dbname = postgres user = postgres password = adM1n34#184" };
@@ -74,9 +60,7 @@ Postgres::postres_err_t Postgres::PostgresProcessor::InitializeDatabaseConnectio
     catch (std::exception const& e)
     {
         spdlog::error(e.what(), "\n");
-        return Postgres::postres_err_t::POSTGRES_ERROR_FAILED_INIT_DB;
+        return postres_err_t::POSTGRES_ERROR_FAILED_INIT_DB;
     }
-
-
-    return Postgres::postres_err_t::POSTGRES_ERROR_OK;
+    return postres_err_t::POSTGRES_ERROR_OK;
 }
