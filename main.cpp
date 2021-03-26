@@ -12,9 +12,10 @@
  /* local C++ headers */
 #include "serv/AsyncTcpServer.h"
 #include "conn/ConnectionManager.h"
+#include "db/PostgresProcessor.h"
 
-/* Build v.0.0.1 from 26.03.2021 */
-const uint32_t PATCH = 1;
+/* Build v.0.0.2 from 27.03.2021 */
+const uint32_t PATCH = 2;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -38,19 +39,17 @@ int main()
 
     try
     {
+        /* conctruct db class */
+        std::unique_ptr<PostgresProcessor> db = std::make_unique<PostgresProcessor>();
         /* separate thread to monitor SPACE key pressing */
         std::thread ext(&EscapeWait);
         /* start tcp server */
-        boost::asio::io_service ios;
-        async_tcp_server serv(ios);
-        ios.run();
+        async_tcp_server::StartTcpServer();
         ext.join();
     }
     catch (std::exception& ex)
     {
         std::cerr << "Exception: " << ex.what() << "\n";
     }
-    //std::unique_ptr<PostgresProcessor> db = std::make_unique<PostgresProcessor>();
-    //std::cout << (int)db->InitializeDatabaseConnection() << std::endl;
     return 0;
 }

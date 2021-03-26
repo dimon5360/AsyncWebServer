@@ -145,18 +145,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="config\config.cpp" />
     <ClCompile Include="conn\AsyncTcpConnection.cpp" />
-    <ClCompile Include="conn\ConnectionManager.cpp" />
     <ClCompile Include="db\PostgresProcess.cpp" />
+    <ClCompile Include="log\Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="serv\AsyncTcpServer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="config\config.h" />
     <ClInclude Include="conn\AsyncTcpConnection.h" />
     <ClInclude Include="conn\ConnectionManager.h" />
     <ClInclude Include="db\PostgresProcessor.h" />
     <ClInclude Include="log\Logger.h" />
     <ClInclude Include="serv\AsyncTcpServer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="db.ini" />
+    <None Include="server.ini" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

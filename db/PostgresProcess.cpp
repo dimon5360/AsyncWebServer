@@ -1,8 +1,14 @@
+/*********************************************
+ *
+ *  @version    0.1
+ *  @date       26.03.2021
+ */
 
 /* std C++ lib headers */
 #include <iostream>
 #include <ctime>
 #include <cstdint>
+#include <fstream>
 
 /* boost C++ lib headers */
 #include <boost/date_time.hpp>
@@ -11,16 +17,27 @@
 #include <pqxx/pqxx>
 #include <spdlog/spdlog.h>
 
-
 /* local C++ headers */
 #include "PostgresProcessor.h"
 
-postres_err_t PostgresProcessor::InitializeDatabaseConnection() {
-    id_ = 0;
+static IConfig dbcfg;
+
+/*********************************************************
+ *  @brief  Set connection to PostgreSQL database
+ */
+void PostgresProcessor::InitializeDatabaseConnection() {
         
     try
     {
-        pqxx::connection C{ "dbname = postgres user = postgres password = adM1n34#184" };
+        /* open db config file */
+        dbcfg.Open("db.ini");
+
+        std::stringstream connection_string;
+        connection_string << "dbname = " << dbcfg.GetRecordByKey("dbname")
+            << " user = " << dbcfg.GetRecordByKey("admin")
+            << " password = " << dbcfg.GetRecordByKey("password");
+
+        pqxx::connection C{ connection_string.str() };
         spdlog::info("Connected to ", C.dbname(), "\n");
         pqxx::work W{ C };
 
@@ -60,7 +77,5 @@ postres_err_t PostgresProcessor::InitializeDatabaseConnection() {
     catch (std::exception const& e)
     {
         spdlog::error(e.what(), "\n");
-        return postres_err_t::POSTGRES_ERROR_FAILED_INIT_DB;
     }
-    return postres_err_t::POSTGRES_ERROR_OK;
 }

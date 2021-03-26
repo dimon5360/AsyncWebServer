@@ -9,28 +9,37 @@
 #include <ctime>
 #include <cstdint>
 
+ /* boost C++ lib headers */
 #include <boost/date_time.hpp>
-
 
 /* extern C++ lib pqxx headers */
 #include <pqxx/pqxx>
 #include <spdlog/spdlog.h>
 
-enum class postres_err_t {
-    POSTGRES_ERROR_OK = 0,
-    POSTGRES_ERROR_FAILED_INIT_DB = 1,
-};
-
+/* local C++ headers */
+#include "../config/config.h"
 
 class PostgresProcessor {
-public:
-    PostgresProcessor() {}
-
-    ~PostgresProcessor() {}
-
-
-    postres_err_t InitializeDatabaseConnection();
 
 private:
-    uint32_t id_;
+
+    /*********************************************************
+     *  @brief  Set connection to PostgreSQL database
+     */
+    void InitializeDatabaseConnection();
+
+public:
+
+    /* constructor */
+    PostgresProcessor() {
+        std::cout << "Postgres processor class constructor\n";
+        /* try to connect to database */
+        InitializeDatabaseConnection();
+    }
+
+    /* destructor */
+    ~PostgresProcessor() {
+        std::cout << "Postgres processor class destructor\n";
+    }
+
 };
