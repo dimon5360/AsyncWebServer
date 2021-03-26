@@ -26,37 +26,7 @@
 
 ConnectionManager<uint64_t> connMan_;
 
-class console_logger : ILogger {
-
-private:
-
-    /* get time code */
-    uint64_t GetCurrTimeMs() override {
-        const auto systick_now = std::chrono::system_clock::now();
-        const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(systick_now.time_since_epoch());
-        return nowMs.count();
-    }
-
-public:
-
-    /* open log file */
-    void open() noexcept override { /* ... */ }
-
-    /* close log file */
-    void close() noexcept override { /* ... */ }
-
-    /* write log string */
-    void write(std::string log) noexcept override {
-        using namespace boost::posix_time;
-        using namespace boost::gregorian;
-
-        ptime now = second_clock::local_time();
-        std::string time = boost::str(boost::format("%1%: ") % to_simple_string(now));
-        std::cout << time << log;
-    }
-};
-
-static console_logger logger;
+static ConsoleLogger logger;
 
 /***********************************************************************************
     *  @brief  Callback-handler of async accepting process
@@ -84,8 +54,6 @@ void async_tcp_server::handle_accept(async_tcp_connection::connection_ptr new_co
     */
 void async_tcp_server::start_accept() {
 
-    logger.write(boost::str(boost::format("Start listening new connection to %1% port \n") % 4059));
-
     uint64_t connId = connMan_.GetFreeId();
 
     async_tcp_connection::connection_ptr new_connection =
@@ -96,4 +64,34 @@ void async_tcp_server::start_accept() {
     acceptor_.async_accept(new_connection->socket(),
         boost::bind(&async_tcp_server::handle_accept, this, new_connection,
             boost::asio::placeholders::error));
+}
+
+/* constructor */
+async_tcp_server::async_tcp_server(boost::asio::io_service& io_service, uint16_t port) :
+    io_service_(io_service),
+    acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
+{
+    logger.write(boost::str(boost::format("Start listening to %1% port\n") % port));
+    start_accept();
+}
+
+static IConfig scfg;
+
+void async_tcp_server::StartTcpServer() {
+
+    try {
+        /* open db config file */
+        scfg.Open("server.ini");
+        std::stringstream sport(scfg.GetRecordByKey("port"));
+        uint16_t port;
+        sport >> port;
+
+        /* start tcp server */
+        boost::asio::io_service ios;
+        async_tcp_server serv(ios, port);
+        ios.run();
+    }
+    catch (std::exception& ex) {
+        std::cout << ex.what() << std::endl;
+    }
 }

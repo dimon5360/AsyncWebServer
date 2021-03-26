@@ -20,11 +20,14 @@
 #include <boost/bind/bind.hpp>
 #include <boost/bind/placeholders.hpp>
 
+/* local C++ headers */
 #include "../conn/AsyncTcpConnection.h"
+#include "../config/config.h"
 
 class async_tcp_server {
 
 private:
+
     /* boost io_service object reference */
     boost::asio::io_service& io_service_;
     /* boost acceptor object */
@@ -49,14 +52,10 @@ private:
 
 public:
 
-    /* constructor */
-    async_tcp_server(boost::asio::io_service& io_service) :
-        io_service_(io_service),
-        acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 4059))
-    {
-        start_accept();
-    }
+    static void StartTcpServer();
 
+    /* constructor */
+    async_tcp_server(boost::asio::io_service& io_service, uint16_t port);
     /* destructor */
     ~async_tcp_server() { /**/ };
 };

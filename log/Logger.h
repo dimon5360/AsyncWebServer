@@ -4,26 +4,25 @@
  */
 #pragma once
 
-class ILogger {
+class ConsoleLogger {
 
 private:
 
     /* get time code */
-    virtual uint64_t GetCurrTimeMs() = 0;
+    uint64_t GetCurrTimeMs() noexcept;
 
 public:
 
-    /* open log file */
-    virtual void open() noexcept = 0;
-
-    /* close log file */
-    virtual void close() noexcept = 0;
-
     /* write log string */
-    virtual void write(std::string log) noexcept = 0;
+    void write(std::string log) noexcept;
 
     /* destructor */
-    virtual ~ILogger() {
-        std::cout << "Destructor of concole logger\n";
+    ConsoleLogger() {
+        std::cout << "Construct logger class\n";
+    }
+
+    /* destructor */
+    ~ConsoleLogger() {
+        std::cout << "Destruct logger class\n";
     }
 };

@@ -27,7 +27,10 @@
     <ClCompile Include="conn\AsyncTcpConnection.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="conn\ConnectionManager.cpp">
+    <ClCompile Include="config\config.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="log\Logger.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
@@ -47,5 +50,12 @@
     <ClInclude Include="conn\ConnectionManager.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="config\config.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="db.ini" />
+    <None Include="server.ini" />
   </ItemGroup>
 </Project>
