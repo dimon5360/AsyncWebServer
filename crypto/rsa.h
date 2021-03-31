@@ -35,7 +35,7 @@ public:
     }
 
     /* getter for new random number to send in server */
-    int32_t GenRandomNumber();
+    int32_t GenRandomNumber() noexcept;
 };
 
 class RSA_Crypto {
@@ -43,19 +43,16 @@ class RSA_Crypto {
 private:
 
     std::pair<int32_t, int32_t> private_key, public_key;
-    std::string decripted_message, encripted_message;
-
-    int32_t p, q, n, t, e, d;
-
     std::unique_ptr<RandomGen> gen_;
 
-    bool isPrime(int32_t prime);
-    int32_t calculateE(int32_t t);
-    int32_t greatestCommonDivisor(int32_t e, int32_t t);
-    int32_t calculateD(int32_t e, int32_t t);
+    bool IsPrime(const int32_t prime) const;
+    int32_t GCD(int32_t e, int32_t t) const;
+    int32_t CalcPublicExp(int32_t t) const;
+    int32_t CalcPrivateExp(int32_t e, int32_t t) const;
 
-    int32_t EncryptChar(int32_t i, int32_t e, int32_t n);
-    int32_t DecryptChar(int32_t i, int32_t d, int32_t n);
+    int32_t EncryptChar(const int32_t i, const int32_t e, const int32_t n) const;
+    int32_t DecryptChar(const int32_t i, const int32_t d, const int32_t n) const;
+    int32_t GetPrimeNum(const int32_t p) const;
 
 public:
 
@@ -64,6 +61,8 @@ public:
     /* destructor */
     ~RSA_Crypto();
 
-    std::vector<int32_t> encrypt(std::string msg_);
-    std::string decrypt(std::vector<int32_t> msg_);
+    void GenKeysPair(int32_t p);
+
+    std::vector<int32_t> Encrypt(const std::string& msg_);
+    std::string Decrypt(const std::vector<int32_t>& msg_);
 };

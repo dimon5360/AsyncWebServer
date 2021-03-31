@@ -71,8 +71,8 @@ static int test_rsa_enc_dec() {
     std::string msg = "hello server";
 
     std::cout << "\nThe original message is: " << msg << std::endl;
-    auto encrypted_msg = rsa.encrypt(msg);
-    std::string decrypted_msg = rsa.decrypt(encrypted_msg);
+    auto encrypted_msg = rsa.Encrypt(msg);
+    std::string decrypted_msg = rsa.Decrypt(encrypted_msg);
     std::cout << "\nThe decrypted message is: " << decrypted_msg << std::endl;
 
     return 0;
