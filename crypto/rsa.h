@@ -12,7 +12,7 @@
 #include <random>
 #include <cmath>
 
-class RandomGen {
+class RsaRandomGen {
 private:
     /* random number generator object */
     std::random_device r;
@@ -21,8 +21,7 @@ private:
 
 public:
 
-    /* constructor */
-    RandomGen(int32_t min, int32_t max) :
+    RsaRandomGen(int32_t min, int32_t max) :
         MIN(min),
         MAX(max)
     {
@@ -30,7 +29,7 @@ public:
     }
 
     /* destructor */
-    ~RandomGen() {
+    ~RsaRandomGen() {
         std::cout << "Destruct random generator class\n";
     }
 
@@ -43,7 +42,7 @@ class RSA_Crypto {
 private:
 
     std::pair<int32_t, int32_t> private_key, public_key;
-    std::unique_ptr<RandomGen> gen_;
+    std::unique_ptr<RsaRandomGen> gen_;
 
     bool IsPrime(const int32_t prime) const;
     int32_t GCD(int32_t e, int32_t t) const;

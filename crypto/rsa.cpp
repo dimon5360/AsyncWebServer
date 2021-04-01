@@ -12,7 +12,7 @@
 #include "rsa.h"
 
 /* getter for new random number to send in server */
-int32_t RandomGen::GenRandomNumber() noexcept {
+int32_t RsaRandomGen::GenRandomNumber() noexcept {
     std::default_random_engine e1(r());
     std::uniform_int_distribution<int32_t> uniform_dist(MIN, MAX);
 
@@ -156,7 +156,7 @@ RSA_Crypto::RSA_Crypto() {
     std::cout << "Construct new RSA crypto class\n";
 
     /* construct random generator */
-    gen_ = std::make_unique<RandomGen>(2500, 3700);
+    gen_ = std::make_unique<RsaRandomGen>(2500, 3700);
     
     // Generate first prime number // TODO: Генерация сильно простых чисел
     int32_t p = gen_->GenRandomNumber();
