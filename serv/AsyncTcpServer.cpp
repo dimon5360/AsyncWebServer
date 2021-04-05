@@ -66,6 +66,10 @@ void async_tcp_server::start_accept() {
             boost::asio::placeholders::error));
 }
 
+
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 /* constructor */
 async_tcp_server::async_tcp_server(boost::asio::io_service& io_service, uint16_t port) :
     io_service_(io_service),

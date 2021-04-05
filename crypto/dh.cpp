@@ -59,7 +59,7 @@ int32_t DH_Crypto::GetUniquePrimeNum(const int32_t f, const int32_t min, const i
 
 int32_t DH_Crypto::Calc(const int32_t number, const int32_t degree, const int32_t divider) const {
     using namespace boost::multiprecision;
-    uint1024_t res = number;
+    uint1024_t res = number; // TODO: big int
     for (int32_t i = 0; i < degree; i++) {
         res *= number;
     }

@@ -147,6 +147,7 @@
   <ItemGroup>
     <ClCompile Include="config\config.cpp" />
     <ClCompile Include="conn\AsyncTcpConnection.cpp" />
+    <ClCompile Include="crypto\big_int.cpp" />
     <ClCompile Include="crypto\dh.cpp" />
     <ClCompile Include="crypto\rsa.cpp" />
     <ClCompile Include="db\PostgresProcess.cpp" />
@@ -159,6 +160,7 @@
     <ClInclude Include="config\config.h" />
     <ClInclude Include="conn\AsyncTcpConnection.h" />
     <ClInclude Include="conn\ConnectionManager.h" />
+    <ClInclude Include="crypto\big_int.h" />
     <ClInclude Include="crypto\dh.h" />
     <ClInclude Include="crypto\rsa.h" />
     <ClInclude Include="db\PostgresProcessor.h" />
