@@ -14,8 +14,8 @@
 #include "conn/ConnectionManager.h"
 #include "db/PostgresProcessor.h"
 
-/* Build v.0.0.4 from 02.04.2021 */
-const uint32_t PATCH = 4;
+/* Build v.0.0.5 from 06.04.2021 */
+const uint32_t PATCH = 5;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -29,7 +29,7 @@ static void EscapeWait() {
     exit(0);
 }
 
-#define UNIT_TEST 1
+#define UNIT_TEST 0
 #if UNIT_TEST
 static int test_rsa_enc_dec();
 static int test_dh_alg();

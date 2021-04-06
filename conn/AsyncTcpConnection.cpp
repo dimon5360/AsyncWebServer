@@ -107,21 +107,56 @@ static guarded_set<uint64_t> _gset;
 *  @brief  Getter for tcp connection socket reference
 *  @return Reference to tcp connection socket
 */
+#if SECURE
+async_tcp_connection::ssl_socket::lowest_layer_type& async_tcp_connection::socket() {
+
+    return socket_.lowest_layer();
+}
+#else 
 boost::asio::ip::tcp::socket& async_tcp_connection::socket()
 {
     return socket_;
 }
+#endif /* SECURE */
 
 /***********************************************************************************
  *  @brief  Start process authentication of client
  *  @return None
  */
 void async_tcp_connection::start_auth() {
+
+#if SECURE
+    socket_.async_handshake(boost::asio::ssl::stream_base::server,
+    boost::bind(&async_tcp_connection::handle_handshake, this,
+        boost::asio::placeholders::error));
+#else 
     socket_.async_read_some(boost::asio::buffer(buf),
         boost::bind(&async_tcp_connection::handle_auth, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
+#endif /* SECURE */
 }
+
+#if SECURE
+/***********************************************************************************
+ *  @brief  Callback-handler of async handshake process
+ *  @param  error Boost system error object reference
+ *  @return None
+ */
+void async_tcp_connection::handle_handshake(const boost::system::error_code& error) {
+    if (!error)
+    {
+        socket_.async_read_some(boost::asio::buffer(buf),
+            boost::bind(&async_tcp_connection::handle_auth, this,
+                boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
+    }
+    else
+    {
+        close(error);
+    }
+}
+#endif /* SECURE */
 
 /***********************************************************************************
  *  @brief  Close tcp connection and call destructor

@@ -19,6 +19,8 @@
 #include <boost/array.hpp> 
 #include <boost/bind/bind.hpp>
 #include <boost/bind/placeholders.hpp>
+// openssl
+#include <boost/asio/ssl.hpp>
 
 /* local C++ headers */
 #include "../conn/AsyncTcpConnection.h"
@@ -32,8 +34,13 @@ private:
     boost::asio::io_service& io_service_;
     /* boost acceptor object */
     boost::asio::ip::tcp::acceptor acceptor_;
+#if SECURE
+    /* boost ssl context */
+    boost::asio::ssl::context context_;
+#endif /* SECURE */
     /* hash map to keep clients connection pointers */
     std::unordered_map<uint32_t, async_tcp_connection::connection_ptr> clientMap;
+
 
     /***********************************************************************************
      *  @brief  Callback-handler of async accepting process
@@ -53,6 +60,7 @@ private:
 public:
 
     static void StartTcpServer();
+    static std::string get_password();
 
     /* constructor */
     async_tcp_server(boost::asio::io_service& io_service, uint16_t port);

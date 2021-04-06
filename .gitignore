@@ -1,3 +1,12 @@
 /.vs/
 /x64/
+
 *.ini
+
+*.key
+*.crt
+*.csr
+*.pem
+*.srl
+
+*.log
