@@ -30,6 +30,7 @@ class AsyncTcpServer {
 
 private:
 
+
     /* boost io_service object reference */
     boost::asio::io_service& io_service_;
     /* boost acceptor object */
@@ -61,7 +62,7 @@ private:
 
 public:
 
-    static void StartTcpServer();
+    static void StartTcpServer(boost::asio::io_service& ios);
     static void StopTcpServer();
 
     AsyncTcpServer(boost::asio::io_service& io_service, uint16_t port);

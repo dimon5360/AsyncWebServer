@@ -48,6 +48,8 @@ void AsyncTcpServer::handle_accept(AsyncTcpConnection::connection_ptr new_connec
     start_accept();
 }
 
+#include <boost/thread.hpp>
+
 /***********************************************************************************
  *  @brief  Start async assepting process in socket
  *  @return None
@@ -65,6 +67,7 @@ void AsyncTcpServer::start_accept() {
 #endif /* SECURE */
     
     connMan_.CreateNewConnection(connId, new_connection);
+    boost::this_thread::interruption_point();
 
     acceptor_.async_accept(new_connection->socket(),
         boost::bind(&AsyncTcpServer::handle_accept, this, new_connection,
@@ -106,7 +109,7 @@ static IConfig scfg;
  *  @brief  Config and start async TCP server on "host:port"
  *  @return None
  */
-void AsyncTcpServer::StartTcpServer() {
+void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
 
     try {
         /* open db config file */
@@ -115,8 +118,8 @@ void AsyncTcpServer::StartTcpServer() {
         uint16_t port;
         sport >> port;
 
-        /* start tcp server */
-        boost::asio::io_service ios;
+        boost::this_thread::interruption_point();
+
         //std::unique_ptr<AsyncTcpServer> serv = std::make_unique<AsyncTcpServer>(ios, port);
         AsyncTcpServer serv(ios, port);
         ios.run();

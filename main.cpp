@@ -8,6 +8,7 @@
 
  /* boost C++ lib headers */
 #include <boost/format.hpp>
+#include <boost/thread.hpp>
 
  /* local C++ headers */
 #include "serv/AsyncTcpServer.h"
@@ -21,11 +22,15 @@ const uint32_t MAJOR = 0;
 
 #include <windows.h>
 
+static bool IsStopServer = false;
+
 /* separate thread for processing of SPACE key press (to close application) */
 static void EscapeWait() {
+
     while (GetAsyncKeyState(VK_SPACE) == 0) {
-        Sleep(10);
+        boost::this_thread::sleep(5);
     }
+    AsyncTcpServer::StopTcpServer();
 }
 
 #define UNIT_TEST 0
@@ -51,15 +56,21 @@ int main()
         std::unique_ptr<PostgresProcessor> db = std::make_unique<PostgresProcessor>();
 
         /* separate thread to start tcp server */
-        std::thread ext(&AsyncTcpServer::StartTcpServer);
+        boost::asio::io_service ios;
+        boost::thread ext(&AsyncTcpServer::StartTcpServer, boost::ref(ios));
 
         /* monitor SPACE key pressing */
         EscapeWait();
-        ext.detach();
+
+        ios.stop();
     }
     catch (std::exception& ex)
     {
         std::cerr << "Exception: " << ex.what() << "\n";
+    }
+    catch (boost::thread_interrupted& ex) 
+    {
+        std::cerr << "Thread interrupted\n";
     }
     return 0;
 }
