@@ -32,14 +32,14 @@ public:
 
     /* constructor */
     PostgresProcessor() {
-        std::cout << "Postgres processor class constructor\n";
+        std::cout << "Construct Postgres processor class\n";
         /* try to connect to database */
         InitializeDatabaseConnection();
     }
 
     /* destructor */
     ~PostgresProcessor() {
-        std::cout << "Postgres processor class destructor\n";
+        std::cout << "Destruct Postgres processor class\n";
     }
 
 };

@@ -14,15 +14,8 @@
 /* local C++ headers */
 #include "Logger.h"
 
-/* get time code */
-uint64_t ConsoleLogger::GetCurrTimeMs() noexcept {
-    const auto systick_now = std::chrono::system_clock::now();
-    const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(systick_now.time_since_epoch());
-    return nowMs.count();
-}
-
 /* write log string */
-void ConsoleLogger::write(std::string log) noexcept {
+void ConsoleLogger::Write(std::string log) noexcept {
     using namespace boost::posix_time;
     using namespace boost::gregorian;
 

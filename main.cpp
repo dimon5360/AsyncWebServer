@@ -14,10 +14,12 @@
 #include "conn/ConnectionManager.h"
 #include "db/PostgresProcessor.h"
 
-/* Build v.0.0.5 from 06.04.2021 */
-const uint32_t PATCH = 5;
+/* Build v.0.0.6 from 06.04.2021 */
+const uint32_t PATCH = 6;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
+
+std::unique_ptr<PostgresProcessor> db;
 
 #include <windows.h>
 
@@ -30,7 +32,7 @@ static void EscapeWait() {
 }
 
 #define UNIT_TEST 0
-#if UNIT_TEST
+#if UNIT_TEST     
 static int test_rsa_enc_dec();
 static int test_dh_alg();
 #endif /* UNIT_TEST */
@@ -49,12 +51,12 @@ int main()
     try
     {
         /* conctruct db class */
-        std::unique_ptr<PostgresProcessor> db = std::make_unique<PostgresProcessor>();
+        db = std::make_unique<PostgresProcessor>();
         /* separate thread to monitor SPACE key pressing */
         std::thread ext(&EscapeWait);
         /* start tcp server */
-        async_tcp_server::StartTcpServer();
-        ext.join();
+        AsyncTcpServer::StartTcpServer();
+        ext.detach();
     }
     catch (std::exception& ex)
     {
@@ -62,6 +64,8 @@ int main()
     }
     return 0;
 }
+
+
 
 #if UNIT_TEST
 #include "crypto/rsa.h"

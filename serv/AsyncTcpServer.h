@@ -26,7 +26,7 @@
 #include "../conn/AsyncTcpConnection.h"
 #include "../config/config.h"
 
-class async_tcp_server {
+class AsyncTcpServer {
 
 private:
 
@@ -39,7 +39,7 @@ private:
     boost::asio::ssl::context context_;
 #endif /* SECURE */
     /* hash map to keep clients connection pointers */
-    std::unordered_map<uint32_t, async_tcp_connection::connection_ptr> clientMap;
+    std::unordered_map<uint32_t, AsyncTcpConnection::connection_ptr> clientMap;
 
 
     /***********************************************************************************
@@ -48,7 +48,7 @@ private:
      *  @param  error Boost system error object reference
      *  @return None
      */
-    void handle_accept(async_tcp_connection::connection_ptr new_connection,
+    void handle_accept(AsyncTcpConnection::connection_ptr new_connection,
         boost::system::error_code error);
 
     /***********************************************************************************
@@ -60,10 +60,10 @@ private:
 public:
 
     static void StartTcpServer();
-    static std::string get_password();
+    static void StopTcpServer();
 
-    /* constructor */
-    async_tcp_server(boost::asio::io_service& io_service, uint16_t port);
-    /* destructor */
-    ~async_tcp_server() { /**/ };
+    AsyncTcpServer(boost::asio::io_service& io_service, uint16_t port);
+    ~AsyncTcpServer() {
+        std::cout << "Destruct AsyncTcpServer class\n";
+    };
 };

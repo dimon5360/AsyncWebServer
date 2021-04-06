@@ -9,6 +9,8 @@
 #include <memory>
 #include <utility>
 #include <algorithm>
+#include <mutex>
+#include <shared_mutex>
 
 /* boost C++ lib headers */
 #include <boost/format.hpp>
@@ -23,33 +25,28 @@
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
 
-static ConsoleLogger logger;
-
-#define DIFFICULT_WAY 1
-#if DIFFICULT_WAY
-#define SIMPLE_WAY 0
-#else
-#define SIMPLE_WAY 1
-#endif /* DIFFICULT_WAY */
+ConsoleLogger connectionLogger;
 
 template <class K>
-class guarded_set {
+class GuardedSet {
 private:
 
     /* set (container) to keep unique random numbers from clients */
     std::unordered_set<K> _set;
     /* mutex object to avoid data race */
-    std::mutex _m;
+    mutable std::shared_mutex mutex_;
 
     K squaresSumm = 0; // keep last value of squares summ
 
     /* setter */
     void Set(K& value) {
+        std::unique_lock lock(mutex_);
         this->_set.insert(value);
     }
 
     /* check contains */
     bool IsContain(K& value) {
+        std::shared_lock lock(mutex_);
         return _set.contains(value);
     }
 
@@ -61,18 +58,6 @@ public:
      *  @return Average of numbers squares summ
      */
     K GetAverage(K value) {
-        std::lock_guard<std::mutex> lk(this->_m);
-#if DIFFICULT_WAY // O(N)
-        if (!IsContain(value)) {
-            Set(value);
-        }
-        squaresSumm = 0;
-        for (auto& v : _set) {
-            squaresSumm += (v * v);
-        }
-
-        return static_cast<K>(squaresSumm / _set.size());
-#elif SIMPLE_WAY // O(1)
         /* New random value is already in container
          * We don't need to calculate new average of numbers' squares */
         if (IsContain(value)) {
@@ -85,14 +70,13 @@ public:
             squaresSumm += (value * value);
             return static_cast<K>(squaresSumm / _set.size());
         }
-#endif /* DIFFICULT_WAY */
     }
 
     /* return dump of set data */
     std::string Dump() {
         std::stringstream ss;
 
-        std::lock_guard<std::mutex> lk(this->_m);
+        std::shared_lock lock(mutex_);
         for (auto& v : _set) {
             ss << v << "\n";
         }
@@ -101,14 +85,14 @@ public:
     }
 };
 
-static guarded_set<uint64_t> _gset;
+GuardedSet<uint64_t> _gset;
 
 /***********************************************************************************
 *  @brief  Getter for tcp connection socket reference
 *  @return Reference to tcp connection socket
 */
 #if SECURE
-async_tcp_connection::ssl_socket::lowest_layer_type& async_tcp_connection::socket() {
+AsyncTcpConnection::ssl_socket::lowest_layer_type& AsyncTcpConnection::socket() {
 
     return socket_.lowest_layer();
 }
@@ -123,11 +107,11 @@ boost::asio::ip::tcp::socket& async_tcp_connection::socket()
  *  @brief  Start process authentication of client
  *  @return None
  */
-void async_tcp_connection::start_auth() {
+void AsyncTcpConnection::StartAuth() {
 
 #if SECURE
     socket_.async_handshake(boost::asio::ssl::stream_base::server,
-    boost::bind(&async_tcp_connection::handle_handshake, this,
+    boost::bind(&AsyncTcpConnection::HandleHandshake, this,
         boost::asio::placeholders::error));
 #else 
     socket_.async_read_some(boost::asio::buffer(buf),
@@ -143,17 +127,17 @@ void async_tcp_connection::start_auth() {
  *  @param  error Boost system error object reference
  *  @return None
  */
-void async_tcp_connection::handle_handshake(const boost::system::error_code& error) {
+void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error) {
     if (!error)
     {
         socket_.async_read_some(boost::asio::buffer(buf),
-            boost::bind(&async_tcp_connection::handle_auth, this,
+            boost::bind(&AsyncTcpConnection::HandleAuth, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
     }
     else
     {
-        close(error);
+        Close(error);
     }
 }
 #endif /* SECURE */
@@ -163,8 +147,8 @@ void async_tcp_connection::handle_handshake(const boost::system::error_code& err
  *  @param  error Boost system error object reference
  *  @return None
  */
-void async_tcp_connection::close(const boost::system::error_code& error) {
-    logger.write(boost::str(boost::format("Close connection request user=%1% error: %2% \n") % id_ % error.message()));
+void AsyncTcpConnection::Close(const boost::system::error_code& error) {
+    connectionLogger.Write(boost::str(boost::format("Close connection request user=%1% error: %2% \n") % id_ % error.message()));
     shutdown(boost::asio::ip::tcp::socket::shutdown_send, error.value());
     connMan_.RemoveConnection(id_);
 }
@@ -175,7 +159,7 @@ void async_tcp_connection::close(const boost::system::error_code& error) {
  *  @param  recvBytes Amount of bytes received from connection
  *  @return None
  */
-void async_tcp_connection::handle_auth(const boost::system::error_code& error,
+void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
     std::size_t recvBytes)
 {
     if (!error)
@@ -186,7 +170,7 @@ void async_tcp_connection::handle_auth(const boost::system::error_code& error,
             std::stringstream log;
 
             log << "<< " << "\"" << in_hello_msg << "\" [" << recvBytes << "]\n";
-            logger.write(log.str());
+            connectionLogger.Write(log.str());
         }
 
         std::stringstream resp;
@@ -195,15 +179,15 @@ void async_tcp_connection::handle_auth(const boost::system::error_code& error,
         {
             std::stringstream log;
             log << ">> " << "\"" << resp.str() << "\" [" << resp.str().size() << "]\n";
-            logger.write(log.str());
+            connectionLogger.Write(log.str());
         }
 
         boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
-            boost::bind(&async_tcp_connection::handle_write, this,
+            boost::bind(&AsyncTcpConnection::HandleWrite, this,
                 boost::asio::placeholders::error));
     }
     else {
-        close(error);
+        Close(error);
     }
 }
 
@@ -212,10 +196,10 @@ void async_tcp_connection::handle_auth(const boost::system::error_code& error,
  *  @param  None
  *  @return None
  */
-void async_tcp_connection::start_read()
+void AsyncTcpConnection::StartRead()
 {
     socket_.async_read_some(boost::asio::buffer(buf),
-        boost::bind(&async_tcp_connection::handle_read, this,
+        boost::bind(&AsyncTcpConnection::HandleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 }
@@ -226,7 +210,7 @@ void async_tcp_connection::start_read()
  *  @param  recvBytes Amount of bytes received from connection
  *  @return None
  */
-void async_tcp_connection::handle_read(const boost::system::error_code& error,
+void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
     std::size_t recvBytes)
 {
     if (!error)
@@ -236,24 +220,19 @@ void async_tcp_connection::handle_read(const boost::system::error_code& error,
         {
             std::stringstream log;
             log << "<< " << "\"" << in_msg << "\" [" << recvBytes << "]\n";
-            logger.write(log.str());
+            connectionLogger.Write(log.str());
         }
 
         to_lower(in_msg);
 
-        if (in_msg.substr(0, tech_req_msg.size()).compare(tech_req_msg) == 0) {
-            auto number = in_msg.substr(tech_req_msg.size());
-
-            std::stringstream int_conv(number);
-
-            int value;
-            int_conv >> value;
+        if (in_msg.starts_with(tech_req_msg)) {
+            int value = boost::lexical_cast<int>(in_msg.substr(tech_req_msg.size()));
             uint64_t summ = _gset.GetAverage(value);
-            start_write(summ);
+            StartWrite(summ);
         }
     }
     else {
-        close(error);
+        Close(error);
     }
 }
 
@@ -262,7 +241,7 @@ void async_tcp_connection::handle_read(const boost::system::error_code& error,
  *  @param  value Average of squares summ from set (container)
  *  @return None
  */
-void async_tcp_connection::start_write(uint64_t value)
+void AsyncTcpConnection::StartWrite(uint64_t value)
 {
     std::stringstream resp;
     resp << tech_resp_msg << value;
@@ -270,11 +249,11 @@ void async_tcp_connection::start_write(uint64_t value)
     {
         std::stringstream log;
         log << ">> " << "\"" << resp.str() << "\" [" << resp.str().size() << "]\n";
-        logger.write(log.str());
+        connectionLogger.Write(log.str());
     }
 
     boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
-        boost::bind(&async_tcp_connection::handle_write, this,
+        boost::bind(&AsyncTcpConnection::HandleWrite, this,
             boost::asio::placeholders::error));
 }
 
@@ -283,13 +262,13 @@ void async_tcp_connection::start_write(uint64_t value)
  *  @param  error Boost system error object reference
  *  @return None
  */
-void async_tcp_connection::handle_write(const boost::system::error_code& error)
+void AsyncTcpConnection::HandleWrite(const boost::system::error_code& error)
 {
     if (!error)
     {
-        start_read();
+        StartRead();
     }
     else {
-        close(error);
+        Close(error);
     }
 }

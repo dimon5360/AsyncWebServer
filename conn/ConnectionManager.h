@@ -6,6 +6,8 @@
 
  /* std C++ lib headers */
 #include <unordered_map>
+#include <mutex>
+#include <shared_mutex>
 
  /* local C++ headers */
 #include "AsyncTcpConnection.h"
@@ -15,15 +17,15 @@ class ConnectionManager {
 
 private:
     /* hash map to keep clients connection pointers */
-    std::unordered_map<K, async_tcp_connection::connection_ptr> clientsMap_;
+    std::unordered_map<K, AsyncTcpConnection::connection_ptr> clientsMap_;
     /* mutex object to avoid data race */
-    std::mutex _m;
+    mutable std::shared_mutex mutex_;
 
     const K DEFAULT_ID = 10;
 public:
 
     K GetFreeId() {
-        std::lock_guard<std::mutex> lk(this->_m);
+        std::shared_lock lk(mutex_);
         static K connId = DEFAULT_ID;
 
         /* if currIdConn is overloaded and there are free ids */
@@ -35,27 +37,38 @@ public:
     }
 
     /***********************************************************************************
-     *  @brief  Static func to create new connection tcp object and return its reference
-     *  @param  io_service  Reference to boost io_service object
+     *  @brief  Func to add new connection tcp object to map
      *  @param  id New client id
-     *  @return Reference to tcp connection object
+     *  @param  connPtr Reference to async tcp connection class
+     *  @return None
      */
-    K CreateNewConnection(K connId, async_tcp_connection::connection_ptr connPtr)
-    {
-        std::lock_guard<std::mutex> lk(this->_m);
+    void CreateNewConnection(K connId, AsyncTcpConnection::connection_ptr connPtr)
+    {        
+        std::unique_lock lk(mutex_);
         clientsMap_.insert({ connId, connPtr });
     }
 
     /***********************************************************************************
-     *  @brief  Static func to create new connection tcp object and return its reference
-     *  @param  io_service  Reference to boost io_service object
-     *  @param  id New client id
-     *  @return Reference to tcp connection object
+     *  @brief  Func to remove connection tcp object by connection id
+     *  @param  connId Client id to remove connection
+     *  @return None
      */
     void RemoveConnection(K connId)
     {
-        std::lock_guard<std::mutex> lk(this->_m);
+        std::unique_lock lk(mutex_);
         clientsMap_.erase(connId);
+    }
+
+    /***********************************************************************************
+     *  @brief  Func to close and remove all connections
+     *  @return None
+     */
+    void CloseAllConnection()
+    {
+        std::shared_lock lk(mutex_);
+        for (auto& v : clientsMap_) {
+            clientsMap_.erase(v.first);
+        }
     }
 };
 

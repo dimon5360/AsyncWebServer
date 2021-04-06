@@ -22,11 +22,10 @@
 
 #define SECURE 1
 #if SECURE
-// openssl
 #include <boost/asio/ssl.hpp>
 #endif /* SECURE */
 
-class async_tcp_connection
+class AsyncTcpConnection
 {
 public:
 #if SECURE
@@ -34,7 +33,7 @@ public:
     using ssl_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
 #endif /* SECURE */
     /* alias for shared pointer to tcp connectio class */
-    using connection_ptr = boost::shared_ptr<async_tcp_connection>;
+    using connection_ptr = std::shared_ptr<AsyncTcpConnection>;
 
     /***********************************************************************************
      *  @brief  Static func to create new connection tcp object and return its reference
@@ -46,7 +45,7 @@ public:
     static connection_ptr create(boost::asio::io_service& io_service,
         boost::asio::ssl::context& context, uint64_t id)
     {
-        return connection_ptr(new async_tcp_connection(io_service, context, id));
+        return connection_ptr(new AsyncTcpConnection(io_service, context, id));
     }
 #else 
     static connection_ptr create(boost::asio::io_service& io_service, uint64_t id)
@@ -70,10 +69,10 @@ public:
      *  @brief  Start process authentication of client
      *  @return None
      */
-    void start_auth();
+    void StartAuth();
 
 #if SECURE
-    async_tcp_connection(boost::asio::io_service& io_service_,
+    AsyncTcpConnection(boost::asio::io_service& io_service_,
         boost::asio::ssl::context& context_, uint64_t id)
         : socket_(io_service_, context_),
         id_(id)
@@ -83,11 +82,11 @@ public:
         id_(id)
 #endif /* SECURE */
     {
-
+        std::cout << "Construct AsyncTcpConnection class\n";
     }
 
-    ~async_tcp_connection() {
-        /* ... */
+    ~AsyncTcpConnection() {
+        std::cout << "Destruct AsyncTcpConnection class\n";
     }
 
 private:
@@ -99,7 +98,7 @@ private:
      *  @param  error Boost system error object reference
      *  @return None
      */
-    void handle_handshake(const boost::system::error_code& error);
+    void HandleHandshake(const boost::system::error_code& error);
 #endif /* SECURE */
 
     /***********************************************************************************
@@ -107,7 +106,7 @@ private:
     *  @param  error Boost system error object reference
     *  @return None
     */
-    void close(const boost::system::error_code& error);
+    void Close(const boost::system::error_code& error);
 
 
     void to_lower(std::string& str) {
@@ -120,7 +119,7 @@ private:
     *  @param  recvBytes Amount of bytes received from connection
     *  @return None
     */
-    void handle_auth(const boost::system::error_code& error,
+    void HandleAuth(const boost::system::error_code& error,
     std::size_t recvBytes);
 
     /***********************************************************************************
@@ -128,7 +127,7 @@ private:
     *  @param  None
     *  @return None
     */
-    void start_read();
+    void StartRead();
 
     /***********************************************************************************
     *  @brief  Callback-handler of async reading process
@@ -136,7 +135,7 @@ private:
     *  @param  recvBytes Amount of bytes received from connection
     *  @return None
     */
-    void handle_read(const boost::system::error_code& error,
+    void HandleRead(const boost::system::error_code& error,
     std::size_t recvBytes);
 
     /***********************************************************************************
@@ -144,14 +143,14 @@ private:
     *  @param  value Average of squares summ from set (container)
     *  @return None
     */
-    void start_write(uint64_t value);
+    void StartWrite(uint64_t value);
 
     /***********************************************************************************
     *  @brief  Callback-handler of async writing process
     *  @param  error Boost system error object reference
     *  @return None
     */
-    void handle_write(const boost::system::error_code& error);
+    void HandleWrite(const boost::system::error_code& error);
 
     /* tcp socket object */
 #if SECURE
@@ -171,5 +170,5 @@ private:
 
     /* exchange data buffer */
     enum { max_length = 1024 };
-    boost::array<char, max_length> buf = { { 0 } };
+    std::array<char, max_length> buf = { { 0 } };
 };
