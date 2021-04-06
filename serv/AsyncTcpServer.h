@@ -57,6 +57,8 @@ private:
      */
     void start_accept();
 
+    AsyncTcpServer();
+
 public:
 
     static void StartTcpServer();

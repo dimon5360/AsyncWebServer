@@ -19,8 +19,6 @@ const uint32_t PATCH = 6;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
-std::unique_ptr<PostgresProcessor> db;
-
 #include <windows.h>
 
 /* separate thread for processing of SPACE key press (to close application) */
@@ -28,7 +26,6 @@ static void EscapeWait() {
     while (GetAsyncKeyState(VK_SPACE) == 0) {
         Sleep(10);
     }
-    exit(0);
 }
 
 #define UNIT_TEST 0
@@ -51,11 +48,13 @@ int main()
     try
     {
         /* conctruct db class */
-        db = std::make_unique<PostgresProcessor>();
-        /* separate thread to monitor SPACE key pressing */
-        std::thread ext(&EscapeWait);
-        /* start tcp server */
-        AsyncTcpServer::StartTcpServer();
+        std::unique_ptr<PostgresProcessor> db = std::make_unique<PostgresProcessor>();
+
+        /* separate thread to start tcp server */
+        std::thread ext(&AsyncTcpServer::StartTcpServer);
+
+        /* monitor SPACE key pressing */
+        EscapeWait();
         ext.detach();
     }
     catch (std::exception& ex)

@@ -117,6 +117,7 @@ void AsyncTcpServer::StartTcpServer() {
 
         /* start tcp server */
         boost::asio::io_service ios;
+        //std::unique_ptr<AsyncTcpServer> serv = std::make_unique<AsyncTcpServer>(ios, port);
         AsyncTcpServer serv(ios, port);
         ios.run();
     }
