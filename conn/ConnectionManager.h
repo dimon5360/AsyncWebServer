@@ -9,6 +9,10 @@
 #include <mutex>
 #include <shared_mutex>
 
+/* boost C++ lib headers */
+#include <boost/bind/placeholders.hpp>
+#include <boost/thread.hpp>
+
  /* local C++ headers */
 #include "AsyncTcpConnection.h"
 
@@ -60,14 +64,27 @@ public:
     }
 
     /***********************************************************************************
+     *  @brief  Func to remove connection tcp object by connection id
+     *  @param  connId Client id to remove connection
+     *  @return None
+     */
+    bool Contains(K connId)
+    {
+        std::shared_lock lk(mutex_);
+        return clientsMap_.contains(connId);
+    }
+
+    /***********************************************************************************
      *  @brief  Func to close and remove all connections
      *  @return None
      */
-    void CloseAllConnection()
+    void CloseAllConnections()
     {
-        std::shared_lock lk(mutex_);
         for (auto& v : clientsMap_) {
-            clientsMap_.erase(v.first);
+            v.second->socket().close();
+        }
+        while (clientsMap_.size() > 0) {
+            boost::this_thread::sleep(1);
         }
     }
 };

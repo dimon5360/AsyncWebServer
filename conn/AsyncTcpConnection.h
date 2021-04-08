@@ -86,10 +86,27 @@ public:
     }
 
     ~AsyncTcpConnection() {
-        std::cout << "Destruct AsyncTcpConnection class\n";
+        std::cout << "Destruct AsyncTcpConnection class for user ID = " << id_ << "\n";
+    }
+
+    uint64_t GetId() const {
+        return id_;
     }
 
 private:
+
+    /***********************************************************************************
+    *  @brief  Close tcp connection and call destructor
+    *  @param  error Boost system error object reference
+    *  @return None
+    */
+    void Close(const boost::system::error_code& error);
+
+    /***********************************************************************************
+    *  @brief  Send shutdown request (close notify)
+    *  @return None
+    */
+    void Shutdown();
 
 
 #if SECURE
@@ -100,13 +117,6 @@ private:
      */
     void HandleHandshake(const boost::system::error_code& error);
 #endif /* SECURE */
-
-    /***********************************************************************************
-    *  @brief  Close tcp connection and call destructor
-    *  @param  error Boost system error object reference
-    *  @return None
-    */
-    void Close(const boost::system::error_code& error);
 
 
     void to_lower(std::string& str) {

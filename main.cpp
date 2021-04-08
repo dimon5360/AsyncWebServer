@@ -9,14 +9,15 @@
  /* boost C++ lib headers */
 #include <boost/format.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/scoped_thread.hpp>
 
  /* local C++ headers */
 #include "serv/AsyncTcpServer.h"
 #include "conn/ConnectionManager.h"
 #include "db/PostgresProcessor.h"
 
-/* Build v.0.0.6 from 06.04.2021 */
-const uint32_t PATCH = 6;
+/* Build v.0.0.7 from 09git.04.2021 */
+const uint32_t PATCH = 7;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -30,7 +31,6 @@ static void EscapeWait() {
     while (GetAsyncKeyState(VK_SPACE) == 0) {
         boost::this_thread::sleep(5);
     }
-    AsyncTcpServer::StopTcpServer();
 }
 
 #define UNIT_TEST 0
@@ -57,20 +57,17 @@ int main()
 
         /* separate thread to start tcp server */
         boost::asio::io_service ios;
-        boost::thread ext(&AsyncTcpServer::StartTcpServer, boost::ref(ios));
+        boost::thread ext(&AsyncTcpServer::StartTcpServer, std::ref(ios));
 
         /* monitor SPACE key pressing */
         EscapeWait();
 
-        ios.stop();
+        AsyncTcpServer::StopTcpServer(std::ref(ios));
+        ext.join();
     }
     catch (std::exception& ex)
     {
         std::cerr << "Exception: " << ex.what() << "\n";
-    }
-    catch (boost::thread_interrupted& ex) 
-    {
-        std::cerr << "Thread interrupted\n";
     }
     return 0;
 }

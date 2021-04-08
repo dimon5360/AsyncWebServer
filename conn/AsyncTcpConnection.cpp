@@ -137,10 +137,19 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
     }
     else
     {
-        Close(error);
+        Shutdown();
     }
 }
 #endif /* SECURE */
+
+/***********************************************************************************
+*  @brief  Send shutdown request (close notify)
+*  @return None
+*/
+void AsyncTcpConnection::Shutdown() {
+    std::cout << "Shutdown id " << id_ << std::endl;
+    socket_.async_shutdown(boost::bind(&AsyncTcpConnection::Close, this, boost::asio::placeholders::error));
+}
 
 /***********************************************************************************
  *  @brief  Close tcp connection and call destructor
@@ -148,9 +157,12 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
  *  @return None
  */
 void AsyncTcpConnection::Close(const boost::system::error_code& error) {
-    connectionLogger.Write(boost::str(boost::format("Close connection request user=%1% error: %2% \n") % id_ % error.message()));
-    shutdown(boost::asio::ip::tcp::socket::shutdown_send, error.value());
-    connMan_.RemoveConnection(id_);
+    if (connMan_.Contains(id_))
+    {
+        connectionLogger.Write(boost::str(boost::format("Close connection user: %1% \n") % id_));
+        socket_.next_layer().close();
+        connMan_.RemoveConnection(id_);
+    }
 }
 
 /***********************************************************************************
@@ -187,7 +199,7 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
                 boost::asio::placeholders::error));
     }
     else {
-        Close(error);
+        Shutdown();
     }
 }
 
@@ -215,7 +227,7 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 {
     if (!error)
     {
-        std::string in_msg{ buf.data(), recvBytes };
+        std::string_view in_msg{ buf.data(), recvBytes };
 
         {
             std::stringstream log;
@@ -223,16 +235,16 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
             connectionLogger.Write(log.str());
         }
 
-        to_lower(in_msg);
+        //to_lower(in_msg);
 
-        if (in_msg.starts_with(tech_req_msg)) {
-            int value = boost::lexical_cast<int>(in_msg.substr(tech_req_msg.size()));
-            uint64_t summ = _gset.GetAverage(value);
-            StartWrite(summ);
+        if (in_msg.starts_with(tech_msg_header)) {
+            auto item = in_msg.find(tech_req_msg);
+            int value = boost::lexical_cast<int>(in_msg.substr(item + tech_req_msg.size()));
+            StartWrite(_gset.GetAverage(value));
         }
     }
     else {
-        Close(error);
+        Shutdown();
     }
 }
 
@@ -244,7 +256,7 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 void AsyncTcpConnection::StartWrite(uint64_t value)
 {
     std::stringstream resp;
-    resp << tech_resp_msg << value;
+    resp << tech_msg_header << id_ << ", " << tech_resp_msg << value;
 
     {
         std::stringstream log;
@@ -269,6 +281,6 @@ void AsyncTcpConnection::HandleWrite(const boost::system::error_code& error)
         StartRead();
     }
     else {
-        Close(error);
+        Shutdown();
     }
 }

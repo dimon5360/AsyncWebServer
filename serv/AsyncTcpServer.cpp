@@ -41,11 +41,11 @@ void AsyncTcpServer::handle_accept(AsyncTcpConnection::connection_ptr new_connec
     {
         serverLogger.Write("New connection accepted. Start reading data.\n");
         new_connection->StartAuth();
+
+        connMan_.CreateNewConnection(new_connection->GetId(), new_connection);
+
+        start_accept();
     }
-    else {
-        shutdown(boost::asio::ip::tcp::socket::shutdown_send, error.value());
-    }
-    start_accept();
 }
 
 #include <boost/thread.hpp>
@@ -66,9 +66,6 @@ void AsyncTcpServer::start_accept() {
         async_tcp_connection::create(io_service_, connId);
 #endif /* SECURE */
     
-    connMan_.CreateNewConnection(connId, new_connection);
-    boost::this_thread::interruption_point();
-
     acceptor_.async_accept(new_connection->socket(),
         boost::bind(&AsyncTcpServer::handle_accept, this, new_connection,
             boost::asio::placeholders::error));
@@ -118,14 +115,11 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
         uint16_t port;
         sport >> port;
 
-        boost::this_thread::interruption_point();
-
-        //std::unique_ptr<AsyncTcpServer> serv = std::make_unique<AsyncTcpServer>(ios, port);
-        AsyncTcpServer serv(ios, port);
+        std::unique_ptr<AsyncTcpServer> serv = std::make_unique<AsyncTcpServer>(ios, port);
         ios.run();
     }
     catch (std::exception& ex) {
-        std::cout << ex.what() << std::endl;
+        std::cout << "StartTcpServer exception: " << ex.what() << std::endl;
     }
 }
 
@@ -133,6 +127,7 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
  *  @brief  Config and start async TCP server on "host:port"
  *  @return None
  */
-void AsyncTcpServer::StopTcpServer() {
-    connMan_.CloseAllConnection();
+void AsyncTcpServer::StopTcpServer(boost::asio::io_service& ios) {
+    connMan_.CloseAllConnections();
+    ios.stop();
 }

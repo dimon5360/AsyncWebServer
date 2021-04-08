@@ -40,7 +40,7 @@ private:
     boost::asio::ssl::context context_;
 #endif /* SECURE */
     /* hash map to keep clients connection pointers */
-    std::unordered_map<uint32_t, AsyncTcpConnection::connection_ptr> clientMap;
+    mutable std::unordered_map<uint32_t, AsyncTcpConnection::connection_ptr> clientMap;
 
 
     /***********************************************************************************
@@ -63,7 +63,7 @@ private:
 public:
 
     static void StartTcpServer(boost::asio::io_service& ios);
-    static void StopTcpServer();
+    static void StopTcpServer(boost::asio::io_service& ios);
 
     AsyncTcpServer(boost::asio::io_service& io_service, uint16_t port);
     ~AsyncTcpServer() {
