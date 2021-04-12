@@ -16,8 +16,8 @@
 #include "conn/ConnectionManager.h"
 #include "db/PostgresProcessor.h"
 
-/* Build v.0.0.7 from 09git.04.2021 */
-const uint32_t PATCH = 7;
+/* Build v.0.0.8 from 12.04.2021 */
+const uint32_t PATCH = 8;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 

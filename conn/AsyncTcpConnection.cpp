@@ -25,6 +25,8 @@
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
 
+#define LAMBDA_USE 1
+
 ConsoleLogger connectionLogger;
 
 template <class K>
@@ -110,9 +112,12 @@ boost::asio::ip::tcp::socket& async_tcp_connection::socket()
 void AsyncTcpConnection::StartAuth() {
 
 #if SECURE
-    socket_.async_handshake(boost::asio::ssl::stream_base::server,
-    boost::bind(&AsyncTcpConnection::HandleHandshake, this,
-        boost::asio::placeholders::error));
+    socket_.async_handshake(boost::asio::ssl::stream_base::server, 
+        [&](const boost::system::error_code& error) {
+        std::cout << "Async authentication lambda callback\n";
+        HandleHandshake(error);
+    });
+
 #else 
     socket_.async_read_some(boost::asio::buffer(buf),
         boost::bind(&async_tcp_connection::handle_auth, this,
@@ -131,9 +136,11 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
     if (!error)
     {
         socket_.async_read_some(boost::asio::buffer(buf),
-            boost::bind(&AsyncTcpConnection::HandleAuth, this,
-                boost::asio::placeholders::error,
-                boost::asio::placeholders::bytes_transferred));
+            [&](const boost::system::error_code& error,
+            std::size_t recvBytes) {
+            std::cout << "Async handshake lambda callback\n";
+            HandleAuth(error, recvBytes);
+        });
     }
     else
     {
@@ -147,8 +154,11 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
 *  @return None
 */
 void AsyncTcpConnection::Shutdown() {
-    std::cout << "Shutdown id " << id_ << std::endl;
-    socket_.async_shutdown(boost::bind(&AsyncTcpConnection::Close, this, boost::asio::placeholders::error));
+    socket_.async_shutdown([&](const boost::system::error_code& error) {
+        std::cout << "Async shutdown lambda callback\n";
+        std::cout << "Shutdown id " << id_ << std::endl;
+        Close(error);
+    });
 }
 
 /***********************************************************************************
@@ -194,9 +204,12 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
             connectionLogger.Write(log.str());
         }
 
-        boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
-            boost::bind(&AsyncTcpConnection::HandleWrite, this,
-                boost::asio::placeholders::error));
+        socket_.async_write_some(boost::asio::buffer(resp.str()),
+            [&](const boost::system::error_code& error,
+            std::size_t bytes_transferred) {
+            std::cout << "Async write lambda callback\n";
+            HandleWrite(error);
+        });
     }
     else {
         Shutdown();
@@ -211,9 +224,11 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
 void AsyncTcpConnection::StartRead()
 {
     socket_.async_read_some(boost::asio::buffer(buf),
-        boost::bind(&AsyncTcpConnection::HandleRead, this,
-            boost::asio::placeholders::error,
-            boost::asio::placeholders::bytes_transferred));
+        [&](const boost::system::error_code& error,
+            std::size_t recvBytes) {
+            std::cout << "Async read lambda callback\n";
+            HandleRead(error, recvBytes);
+    });
 }
 
 /***********************************************************************************
@@ -235,7 +250,7 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
             connectionLogger.Write(log.str());
         }
 
-        //to_lower(in_msg);
+        to_lower(std::move(in_msg.data()));
 
         if (in_msg.starts_with(tech_msg_header)) {
             auto item = in_msg.find(tech_req_msg);
@@ -264,9 +279,12 @@ void AsyncTcpConnection::StartWrite(uint64_t value)
         connectionLogger.Write(log.str());
     }
 
-    boost::asio::async_write(socket_, boost::asio::buffer(resp.str()),
-        boost::bind(&AsyncTcpConnection::HandleWrite, this,
-            boost::asio::placeholders::error));
+    socket_.async_write_some(boost::asio::buffer(resp.str()),
+        [&](const boost::system::error_code& error,
+        std::size_t bytes_transferred) {
+        std::cout << "Async write lambda callback\n";
+        HandleWrite(error);
+    });
 }
 
 /***********************************************************************************

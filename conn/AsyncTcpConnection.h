@@ -119,7 +119,7 @@ private:
 #endif /* SECURE */
 
 
-    void to_lower(std::string& str) {
+    void to_lower(std::string&& str) {
         std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     }
 

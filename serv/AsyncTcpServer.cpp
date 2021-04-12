@@ -34,8 +34,8 @@ ConsoleLogger serverLogger;
  *  @param  error Boost system error object reference
  *  @return None
  */
-void AsyncTcpServer::handle_accept(AsyncTcpConnection::connection_ptr new_connection,
-    boost::system::error_code error)
+void AsyncTcpServer::HandleAccept(AsyncTcpConnection::connection_ptr new_connection,
+    const boost::system::error_code error)
 {
     if (!error)
     {
@@ -44,7 +44,10 @@ void AsyncTcpServer::handle_accept(AsyncTcpConnection::connection_ptr new_connec
 
         connMan_.CreateNewConnection(new_connection->GetId(), new_connection);
 
-        start_accept();
+        StartAccept();
+    }
+    else {
+        new_connection->socket().close();
     }
 }
 
@@ -54,7 +57,7 @@ void AsyncTcpServer::handle_accept(AsyncTcpConnection::connection_ptr new_connec
  *  @brief  Start async assepting process in socket
  *  @return None
  */
-void AsyncTcpServer::start_accept() {
+void AsyncTcpServer::StartAccept() {
 
     uint64_t connId = connMan_.GetFreeId();
 
@@ -67,8 +70,8 @@ void AsyncTcpServer::start_accept() {
 #endif /* SECURE */
     
     acceptor_.async_accept(new_connection->socket(),
-        boost::bind(&AsyncTcpServer::handle_accept, this, new_connection,
-            boost::asio::placeholders::error));
+        std::bind(&AsyncTcpServer::HandleAccept, this, new_connection,
+            std::placeholders::_1));
 }
 
 /***********************************************************************************
@@ -91,13 +94,12 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service& io_service, uint16_t por
         boost::asio::ssl::context::no_sslv2 |
         boost::asio::ssl::context::single_dh_use);
 
-    //context_.set_password_callback(boost::bind(&async_tcp_server::get_password, this));
     context_.use_certificate_chain_file("user.crt");
     context_.use_private_key_file("user.key", boost::asio::ssl::context::pem);
     context_.use_tmp_dh_file("dh2048.pem");
 #endif /* SECURE */
 
-    start_accept();
+    StartAccept();
 }
 
 static IConfig scfg;
@@ -124,7 +126,7 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
 }
 
 /***********************************************************************************
- *  @brief  Config and start async TCP server on "host:port"
+ *  @brief  Close all connections and stop async TCP server io service
  *  @return None
  */
 void AsyncTcpServer::StopTcpServer(boost::asio::io_service& ios) {

@@ -49,14 +49,14 @@ private:
      *  @param  error Boost system error object reference
      *  @return None
      */
-    void handle_accept(AsyncTcpConnection::connection_ptr new_connection,
-        boost::system::error_code error);
+    void HandleAccept(AsyncTcpConnection::connection_ptr new_connection,
+        const boost::system::error_code error);
 
     /***********************************************************************************
      *  @brief  Start async assepting process in socket
      *  @return None
      */
-    void start_accept();
+    void StartAccept();
 
     AsyncTcpServer();
 
