@@ -20,10 +20,4 @@
 void ConsoleLogger::Write(std::string log) noexcept {
 
     spdlog::info(log);
-    /*using namespace boost::posix_time;
-    using namespace boost::gregorian;
-
-    ptime now = second_clock::local_time();
-    std::string time = boost::str(boost::format("%1%: ") % to_simple_string(now));
-    std::cout << time << log;*/
 }

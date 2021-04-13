@@ -16,7 +16,7 @@
 #include "conn/ConnectionManager.h"
 #include "db/PostgresProcessor.h"
 
-/* Build v.0.0.8 from 12.04.2021 */
+/* Build v.0.0.9 from 13.04.2021 */
 const uint32_t PATCH = 8;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
@@ -55,15 +55,25 @@ int main()
         /* conctruct db class */
         std::unique_ptr<PostgresProcessor> db = std::make_unique<PostgresProcessor>();
 
+
         /* separate thread to start tcp server */
         boost::asio::io_service ios;
-        boost::thread ext(&AsyncTcpServer::StartTcpServer, std::ref(ios));
+
+        boost::thread_group threads;
+        boost::asio::io_service::work work(ios);
+
+        for (int i = 0; i < boost::thread::hardware_concurrency(); ++i)
+        {
+            threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
+        }
+        ios.post(boost::bind(&AsyncTcpServer::StartTcpServer, std::ref(ios)));
 
         /* monitor SPACE key pressing */
         EscapeWait();
 
         AsyncTcpServer::StopTcpServer(std::ref(ios));
-        ext.join();
+        ios.stop();
+        threads.join_all();
     }
     catch (std::exception& ex)
     {

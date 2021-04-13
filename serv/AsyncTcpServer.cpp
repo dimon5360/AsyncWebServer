@@ -18,6 +18,7 @@
 #include <boost/bind/bind.hpp>
 #include <boost/bind/placeholders.hpp>
 #include <boost/date_time.hpp>
+#include <boost/thread.hpp>
 
 /* local C++ headers */
 #include "AsyncTcpServer.h"
@@ -51,8 +52,6 @@ void AsyncTcpServer::HandleAccept(AsyncTcpConnection::connection_ptr new_connect
     }
 }
 
-#include <boost/thread.hpp>
-
 /***********************************************************************************
  *  @brief  Start async assepting process in socket
  *  @return None
@@ -61,14 +60,9 @@ void AsyncTcpServer::StartAccept() {
 
     uint64_t connId = connMan_.GetFreeId();
 
-#if SECURE
     AsyncTcpConnection::connection_ptr new_connection =
         AsyncTcpConnection::create(io_service_, context_, connId);
-#else 
-    async_tcp_connection::connection_ptr new_connection =
-        async_tcp_connection::create(io_service_, connId);
-#endif /* SECURE */
-    
+
     acceptor_.async_accept(new_connection->socket(),
         std::bind(&AsyncTcpServer::HandleAccept, this, new_connection,
             std::placeholders::_1));
@@ -79,17 +73,12 @@ void AsyncTcpServer::StartAccept() {
  */
 AsyncTcpServer::AsyncTcpServer(boost::asio::io_service& io_service, uint16_t port) :
     io_service_(io_service),
-#if SECURE
     acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-    context_(boost::asio::ssl::context::sslv23)
-#else
-    acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
-#endif /* SECURE */
+    context_(boost::asio::ssl::context::tlsv13)
 {
     std::cout << "Construct AsyncTcpServer class\n";
     serverLogger.Write(boost::str(boost::format("Start listening to %1% port\n") % port));
 
-#if SECURE
     context_.set_options(boost::asio::ssl::context::default_workarounds |
         boost::asio::ssl::context::no_sslv2 |
         boost::asio::ssl::context::single_dh_use);
@@ -97,7 +86,6 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service& io_service, uint16_t por
     context_.use_certificate_chain_file("user.crt");
     context_.use_private_key_file("user.key", boost::asio::ssl::context::pem);
     context_.use_tmp_dh_file("dh2048.pem");
-#endif /* SECURE */
 
     StartAccept();
 }
@@ -131,5 +119,4 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
  */
 void AsyncTcpServer::StopTcpServer(boost::asio::io_service& ios) {
     connMan_.CloseAllConnections();
-    ios.stop();
 }

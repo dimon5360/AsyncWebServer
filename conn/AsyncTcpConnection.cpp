@@ -25,7 +25,8 @@
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
 
-#define LAMBDA_USE 1
+/* DEBUG log */
+#define DEBUG 0
 
 ConsoleLogger connectionLogger;
 
@@ -114,7 +115,9 @@ void AsyncTcpConnection::StartAuth() {
 #if SECURE
     socket_.async_handshake(boost::asio::ssl::stream_base::server, 
         [&](const boost::system::error_code& error) {
+#if DEBUG
         std::cout << "Async authentication lambda callback\n";
+#endif /* DEBUG */
         HandleHandshake(error);
     });
 
@@ -138,12 +141,16 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
         socket_.async_read_some(boost::asio::buffer(buf),
             [&](const boost::system::error_code& error,
             std::size_t recvBytes) {
+#if DEBUG
             std::cout << "Async handshake lambda callback\n";
+#endif /* DEBUG */
             HandleAuth(error, recvBytes);
         });
     }
     else
     {
+        connectionLogger.Write(boost::str(boost::format(
+            "Handshake error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
@@ -155,8 +162,10 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
 */
 void AsyncTcpConnection::Shutdown() {
     socket_.async_shutdown([&](const boost::system::error_code& error) {
+#if DEBUG
         std::cout << "Async shutdown lambda callback\n";
         std::cout << "Shutdown id " << id_ << std::endl;
+#endif /* DEBUG */
         Close(error);
     });
 }
@@ -204,14 +213,19 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
             connectionLogger.Write(log.str());
         }
 
+        
         socket_.async_write_some(boost::asio::buffer(resp.str()),
             [&](const boost::system::error_code& error,
             std::size_t bytes_transferred) {
+#if DEBUG
             std::cout << "Async write lambda callback\n";
+#endif /* DEBUG */
             HandleWrite(error);
         });
     }
     else {
+        connectionLogger.Write(boost::str(boost::format(
+            "Handshake error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
@@ -226,7 +240,9 @@ void AsyncTcpConnection::StartRead()
     socket_.async_read_some(boost::asio::buffer(buf),
         [&](const boost::system::error_code& error,
             std::size_t recvBytes) {
+#if DEBUG
             std::cout << "Async read lambda callback\n";
+#endif /* DEBUG */
             HandleRead(error, recvBytes);
     });
 }
@@ -259,6 +275,8 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
         }
     }
     else {
+        connectionLogger.Write(boost::str(boost::format(
+            "Handshake error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
@@ -282,7 +300,9 @@ void AsyncTcpConnection::StartWrite(uint64_t value)
     socket_.async_write_some(boost::asio::buffer(resp.str()),
         [&](const boost::system::error_code& error,
         std::size_t bytes_transferred) {
+#if DEBUG
         std::cout << "Async write lambda callback\n";
+#endif /* DEBUG */
         HandleWrite(error);
     });
 }
@@ -299,6 +319,8 @@ void AsyncTcpConnection::HandleWrite(const boost::system::error_code& error)
         StartRead();
     }
     else {
+        connectionLogger.Write(boost::str(boost::format(
+            "Handshake error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
