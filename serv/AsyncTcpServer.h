@@ -19,7 +19,6 @@
 #include <boost/array.hpp> 
 #include <boost/bind/bind.hpp>
 #include <boost/bind/placeholders.hpp>
-// openssl
 #include <boost/asio/ssl.hpp>
 
 /* local C++ headers */
@@ -35,10 +34,8 @@ private:
     boost::asio::io_service& io_service_;
     /* boost acceptor object */
     boost::asio::ip::tcp::acceptor acceptor_;
-#if SECURE
     /* boost ssl context */
     boost::asio::ssl::context context_;
-#endif /* SECURE */
     /* hash map to keep clients connection pointers */
     mutable std::unordered_map<uint32_t, AsyncTcpConnection::connection_ptr> clientMap;
 

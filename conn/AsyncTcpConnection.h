@@ -19,19 +19,21 @@
 #include <boost/array.hpp> 
 #include <boost/bind/bind.hpp>
 #include <boost/bind/placeholders.hpp>
-
-#define SECURE 1
-#if SECURE
 #include <boost/asio/ssl.hpp>
-#endif /* SECURE */
+
+#include <boost/asio/awaitable.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <boost/asio/write.hpp>
 
 class AsyncTcpConnection
 {
 public:
-#if SECURE
     /* alias for ssl stream to tcp socket */
     using ssl_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
-#endif /* SECURE */
     /* alias for shared pointer to tcp connectio class */
     using connection_ptr = std::shared_ptr<AsyncTcpConnection>;
 
@@ -41,29 +43,18 @@ public:
      *  @param  id New client id
      *  @return Reference to tcp connection object
      */
-#if SECURE
     static connection_ptr create(boost::asio::io_service& io_service,
         boost::asio::ssl::context& context, uint64_t id)
     {
         return connection_ptr(new AsyncTcpConnection(io_service, context, id));
     }
-#else 
-    static connection_ptr create(boost::asio::io_service& io_service, uint64_t id)
-    {
-        return connection_ptr(new async_tcp_connection(io_service, id));
-    }
-#endif /* SECURE */
 
 
     /***********************************************************************************
      *  @brief  Getter for tcp connection socket reference
      *  @return Reference to tcp connection socket
      */
-#if SECURE
     ssl_socket::lowest_layer_type& socket();
-#else 
-    boost::asio::ip::tcp::socket& socket();
-#endif /* SECURE */
 
     /***********************************************************************************
      *  @brief  Start process authentication of client
@@ -71,16 +62,10 @@ public:
      */
     void StartAuth();
 
-#if SECURE
     AsyncTcpConnection(boost::asio::io_service& io_service_,
         boost::asio::ssl::context& context_, uint64_t id)
         : socket_(io_service_, context_),
         id_(id)
-#else 
-    async_tcp_connection(boost::asio::io_service& io_service_, uint64_t id)
-        : socket_(io_service_),
-        id_(id)
-#endif /* SECURE */
     {
         std::cout << "Construct AsyncTcpConnection class\n";
     }
@@ -109,14 +94,12 @@ private:
     void Shutdown();
 
 
-#if SECURE
     /***********************************************************************************
      *  @brief  Callback-handler of async handshake process
      *  @param  error Boost system error object reference
      *  @return None
      */
     void HandleHandshake(const boost::system::error_code& error);
-#endif /* SECURE */
 
 
     void to_lower(std::string&& str) {
@@ -130,7 +113,7 @@ private:
     *  @return None
     */
     void HandleAuth(const boost::system::error_code& error,
-    std::size_t recvBytes);
+        std::size_t recvBytes);
 
     /***********************************************************************************
     *  @brief  Start async reading process from socket
@@ -146,7 +129,7 @@ private:
     *  @return None
     */
     void HandleRead(const boost::system::error_code& error,
-    std::size_t recvBytes);
+        std::size_t recvBytes);
 
     /***********************************************************************************
     *  @brief  Start async writing process from socket
@@ -163,11 +146,7 @@ private:
     void HandleWrite(const boost::system::error_code& error);
 
     /* tcp socket object */
-#if SECURE
     ssl_socket socket_;
-#else 
-    boost::asio::ip::tcp::socket socket_;
-#endif /* SECURE */
 
     /* msgs headers to exchange with clients */
     const std::string hello_msg = std::string("hello user id=");

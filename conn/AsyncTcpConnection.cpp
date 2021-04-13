@@ -25,9 +25,6 @@
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
 
-/* DEBUG log */
-#define DEBUG 0
-
 ConsoleLogger connectionLogger;
 
 template <class K>
@@ -94,17 +91,10 @@ GuardedSet<uint64_t> _gset;
 *  @brief  Getter for tcp connection socket reference
 *  @return Reference to tcp connection socket
 */
-#if SECURE
 AsyncTcpConnection::ssl_socket::lowest_layer_type& AsyncTcpConnection::socket() {
 
     return socket_.lowest_layer();
 }
-#else 
-boost::asio::ip::tcp::socket& async_tcp_connection::socket()
-{
-    return socket_;
-}
-#endif /* SECURE */
 
 /***********************************************************************************
  *  @brief  Start process authentication of client
@@ -112,24 +102,12 @@ boost::asio::ip::tcp::socket& async_tcp_connection::socket()
  */
 void AsyncTcpConnection::StartAuth() {
 
-#if SECURE
     socket_.async_handshake(boost::asio::ssl::stream_base::server, 
         [&](const boost::system::error_code& error) {
-#if DEBUG
-        std::cout << "Async authentication lambda callback\n";
-#endif /* DEBUG */
         HandleHandshake(error);
     });
-
-#else 
-    socket_.async_read_some(boost::asio::buffer(buf),
-        boost::bind(&async_tcp_connection::handle_auth, this,
-            boost::asio::placeholders::error,
-            boost::asio::placeholders::bytes_transferred));
-#endif /* SECURE */
 }
 
-#if SECURE
 /***********************************************************************************
  *  @brief  Callback-handler of async handshake process
  *  @param  error Boost system error object reference
@@ -141,9 +119,6 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
         socket_.async_read_some(boost::asio::buffer(buf),
             [&](const boost::system::error_code& error,
             std::size_t recvBytes) {
-#if DEBUG
-            std::cout << "Async handshake lambda callback\n";
-#endif /* DEBUG */
             HandleAuth(error, recvBytes);
         });
     }
@@ -154,7 +129,6 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
         Shutdown();
     }
 }
-#endif /* SECURE */
 
 /***********************************************************************************
 *  @brief  Send shutdown request (close notify)
@@ -162,10 +136,6 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
 */
 void AsyncTcpConnection::Shutdown() {
     socket_.async_shutdown([&](const boost::system::error_code& error) {
-#if DEBUG
-        std::cout << "Async shutdown lambda callback\n";
-        std::cout << "Shutdown id " << id_ << std::endl;
-#endif /* DEBUG */
         Close(error);
     });
 }
@@ -217,9 +187,6 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
         socket_.async_write_some(boost::asio::buffer(resp.str()),
             [&](const boost::system::error_code& error,
             std::size_t bytes_transferred) {
-#if DEBUG
-            std::cout << "Async write lambda callback\n";
-#endif /* DEBUG */
             HandleWrite(error);
         });
     }
@@ -240,9 +207,6 @@ void AsyncTcpConnection::StartRead()
     socket_.async_read_some(boost::asio::buffer(buf),
         [&](const boost::system::error_code& error,
             std::size_t recvBytes) {
-#if DEBUG
-            std::cout << "Async read lambda callback\n";
-#endif /* DEBUG */
             HandleRead(error, recvBytes);
     });
 }
@@ -300,9 +264,6 @@ void AsyncTcpConnection::StartWrite(uint64_t value)
     socket_.async_write_some(boost::asio::buffer(resp.str()),
         [&](const boost::system::error_code& error,
         std::size_t bytes_transferred) {
-#if DEBUG
-        std::cout << "Async write lambda callback\n";
-#endif /* DEBUG */
         HandleWrite(error);
     });
 }

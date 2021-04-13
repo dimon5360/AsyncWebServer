@@ -36,7 +36,7 @@
     <ClCompile Include="crypto\rsa.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="test\test_coroutines.cpp">
+    <ClCompile Include="test\tests.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="crypto\dh.cpp">
@@ -68,7 +68,7 @@
     <ClInclude Include="crypto\rsa.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="test\test.h">
+    <ClInclude Include="test\tests.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="crypto\dh.h">

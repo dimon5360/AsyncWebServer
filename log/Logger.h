@@ -4,7 +4,6 @@
  */
 #pragma once
 
-
 class ConsoleLogger {
 
     /* get time code */

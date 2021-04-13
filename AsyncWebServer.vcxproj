@@ -154,7 +154,7 @@
     <ClCompile Include="log\Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="serv\AsyncTcpServer.cpp" />
-    <ClCompile Include="test\test_coroutines.cpp" />
+    <ClCompile Include="test\tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config\config.h" />
@@ -166,7 +166,7 @@
     <ClInclude Include="db\PostgresProcessor.h" />
     <ClInclude Include="log\Logger.h" />
     <ClInclude Include="serv\AsyncTcpServer.h" />
-    <ClInclude Include="test\test.h" />
+    <ClInclude Include="test\tests.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="db.ini" />
