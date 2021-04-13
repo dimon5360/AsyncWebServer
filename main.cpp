@@ -17,21 +17,9 @@
 #include "db/PostgresProcessor.h"
 
 /* Build v.0.0.9 from 13.04.2021 */
-const uint32_t PATCH = 8;
+const uint32_t PATCH = 9;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
-
-#include <windows.h>
-
-static bool IsStopServer = false;
-
-/* separate thread for processing of SPACE key press (to close application) */
-static void EscapeWait() {
-
-    while (GetAsyncKeyState(VK_SPACE) == 0) {
-        boost::this_thread::sleep(5);
-    }
-}
 
 #define UNIT_TEST 0
 #if UNIT_TEST     
@@ -58,6 +46,7 @@ int main()
 
         /* separate thread to start tcp server */
         boost::asio::io_service ios;
+        boost::asio::signal_set signals(ios, SIGINT);
 
         boost::thread_group threads;
         boost::asio::io_service::work work(ios);
@@ -68,11 +57,14 @@ int main()
         }
         ios.post(boost::bind(&AsyncTcpServer::StartTcpServer, std::ref(ios)));
 
-        /* monitor SPACE key pressing */
-        EscapeWait();
 
-        AsyncTcpServer::StopTcpServer(std::ref(ios));
-        ios.stop();
+        // Start an asynchronous wait for one of the signals to occur.
+        signals.async_wait([&](const boost::system::error_code& error,
+            int signal_number) {
+                AsyncTcpServer::StopTcpServer(std::ref(ios));
+                ios.stop();
+            });
+
         threads.join_all();
     }
     catch (std::exception& ex)
@@ -81,8 +73,6 @@ int main()
     }
     return 0;
 }
-
-
 
 #if UNIT_TEST
 #include "crypto/rsa.h"
