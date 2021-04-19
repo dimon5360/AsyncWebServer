@@ -11,18 +11,22 @@
 #include <boost/thread.hpp>
 #include <boost/thread/scoped_thread.hpp>
 
+#include <spdlog/spdlog.h>
+
  /* local C++ headers */
 #include "serv/AsyncTcpServer.h"
 #include "conn/ConnectionManager.h"
 #include "db/PostgresProcessor.h"
 #include "test/tests.h"
 
-/* Build v.0.0.9 from 13.04.2021 */
-const uint32_t PATCH = 9;
+/* Build v.0.0.10 from 19.04.2021 */
+const uint32_t PATCH = 10;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
-
+/**********************************************************
+ *  @brief  entry point 
+ */
 int main()
 {
 #if UNIT_TEST    
@@ -31,14 +35,12 @@ int main()
 
     /* for corrent output boost error messages */
     SetConsoleOutputCP(1251);
-    std::cout << boost::format("Hello. Application version is %1%.%2%.%3%\n") % MAJOR % MINOR % PATCH;
-    std::cout << "Press SPACE to exit...\n";
+    spdlog::info(boost::str(boost::format("Hello. Application version is %1%.%2%.%3%\n") % MAJOR % MINOR % PATCH));
 
     try
     {
         /* conctruct db class */
         std::unique_ptr<PostgresProcessor> db = std::make_unique<PostgresProcessor>();
-
 
         /* separate thread to start tcp server */
         boost::asio::io_service ios;
@@ -52,7 +54,6 @@ int main()
             threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
         }
         ios.post(boost::bind(&AsyncTcpServer::StartTcpServer, std::ref(ios)));
-
 
         /* asynchronous wait for Ctrl + C signal to occur */
         signals.async_wait([&](const boost::system::error_code& error, int signal_number) {

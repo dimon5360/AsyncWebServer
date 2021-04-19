@@ -10,6 +10,7 @@
 #include <utility>
 #include <algorithm>
 #include <cstdint>
+#include <thread>
 
 /* boost C++ lib headers */
 #include <boost/format.hpp>
@@ -18,7 +19,6 @@
 #include <boost/bind/bind.hpp>
 #include <boost/bind/placeholders.hpp>
 #include <boost/date_time.hpp>
-#include <boost/thread.hpp>
 
 /* local C++ headers */
 #include "AsyncTcpServer.h"
@@ -62,6 +62,8 @@ void AsyncTcpServer::StartAccept() {
 
     AsyncTcpConnection::connection_ptr new_connection =
         AsyncTcpConnection::create(io_service_, context_, connId);
+
+    std::cout << "Current thread ID = " << std::this_thread::get_id() << std::endl;
 
     acceptor_.async_accept(new_connection->socket(),
         std::bind(&AsyncTcpServer::HandleAccept, this, new_connection,

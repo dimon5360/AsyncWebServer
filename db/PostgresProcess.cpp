@@ -12,15 +12,36 @@
 
 /* boost C++ lib headers */
 #include <boost/date_time.hpp>
+#include <boost/format.hpp>
+#include <boost/container_hash/hash.hpp>
 
 /* extern C++ lib pqxx headers */
 #include <pqxx/pqxx>
 #include <spdlog/spdlog.h>
+#include "cryptopp/base64.h"
+#include "cryptopp/sha.h"
+#include "cryptopp/hmac.h"
 
 /* local C++ headers */
 #include "PostgresProcessor.h"
 
 static IConfig dbcfg;
+
+std::string SHA256(std::string data)
+{
+    using namespace CryptoPP;
+    byte const* pbData = (byte*)data.data();
+    unsigned int nDataLen = data.size();
+    byte abDigest[CryptoPP::SHA256::DIGESTSIZE];
+
+    CryptoPP::SHA256().CalculateDigest(abDigest, pbData, nDataLen); 
+    CryptoPP::Base64Encoder encoder;
+    std::string output;
+    encoder.Attach(new CryptoPP::StringSink(output));
+    encoder.Put(abDigest, sizeof(abDigest));
+    encoder.MessageEnd();
+    return output;// std::string((char*)abDigest, CryptoPP::SHA256::DIGESTSIZE);
+}
 
 /*********************************************************
  *  @brief  Set connection to PostgreSQL database
@@ -32,31 +53,27 @@ void PostgresProcessor::InitializeDatabaseConnection() {
         /* open db config file */
         dbcfg.Open("db.ini");
 
-        std::stringstream connection_string;
-        connection_string << "dbname = " << dbcfg.GetRecordByKey("dbname")
-            << " user = " << dbcfg.GetRecordByKey("admin")
-            << " password = " << dbcfg.GetRecordByKey("password");
+        std::string connection_string{
+            boost::str(boost::format("dbname = %1% user = %2% password = %3% host = %4% port = %5%") 
+            % dbcfg.GetRecordByKey("dbname") 
+            % dbcfg.GetRecordByKey("admin")
+            % dbcfg.GetRecordByKey("password")
+            % dbcfg.GetRecordByKey("host")
+            % dbcfg.GetRecordByKey("port"))};
 
-        pqxx::connection C{ connection_string.str() };
-        spdlog::info("Connected to ", C.dbname(), "\n");
+        pqxx::connection C{ connection_string };
         pqxx::work W{ C };
 
-        pqxx::result R{ W.exec("SELECT id FROM UsersTable;") };
+        pqxx::result R{ W.exec(boost::str(boost::format("SELECT * FROM %1% where email = \'%2%\';\n") % dbcfg.GetRecordByKey("dbusertable") % "vasiliy@test.com")) };
 
-        if (!R.size()) {
-            std::stringstream res;
-            res << R.size();
-            spdlog::info("Found " + res.str() + " users:\n");
-            for (auto row : R)
-                std::cout << row[0].c_str() << '\n';
-
-            spdlog::info("Doubling all employees' salaries...\n");
-            W.exec0("UPDATE employee SET salary = salary*2");
-
-
-            spdlog::info("Making changes definite: ");
-            W.commit();
-
+        if (R.size()) {
+            spdlog::info(boost::str(boost::format("Found %1% users:") % R.size()));
+            for (auto row : R) {
+                for (auto const& v : row) {
+                    std::cout << v << ' ';
+                }
+                std::cout << '\n';
+            }
             spdlog::info("OK.\n");
         }
         else {
@@ -67,9 +84,18 @@ void PostgresProcessor::InitializeDatabaseConnection() {
             using namespace boost::posix_time;
             using namespace boost::gregorian;
 
+            spdlog::info("Add new user\n");
             ptime now = second_clock::local_time();
-            req << "INSERT INTO UsersTable (fname, email, date) VALUES ('Vasiliy','vasiliy@test.com','" << to_iso_string(now) << "');";
-            pqxx::result R{ W.exec(req.str()) };
+            std::string hash = SHA256("password");
+            
+            std::string insert_request{
+                boost::str(boost::format("INSERT INTO %1% (email, username, password) VALUES(\'%2%\',\'%3%\',\'%4%\');")
+                % dbcfg.GetRecordByKey("dbusertable")
+                % "vasiliy@test.com"
+                % "Vasiok"
+                % hash)};
+
+            pqxx::result R{ W.exec(insert_request) };
             W.commit();
         }
         C.close();

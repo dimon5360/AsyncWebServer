@@ -67,7 +67,7 @@ public:
         : socket_(io_service_, context_),
         id_(id)
     {
-        std::cout << "Construct AsyncTcpConnection class\n";
+        std::cout << "Construct AsyncTcpConnection class for user ID = " << id_ << "\n";
     }
 
     ~AsyncTcpConnection() {
