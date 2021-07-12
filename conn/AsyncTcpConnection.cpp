@@ -187,7 +187,7 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
     }
     else {
         connectionLogger.Write(boost::str(boost::format(
-            "Handle authenticatin error user: %1% \"%2%\"\n") % id_ % error.message()));
+            "Handle authentication error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
