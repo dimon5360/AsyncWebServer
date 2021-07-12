@@ -8,6 +8,7 @@
 
  /* boost C++ lib headers */
 #include <boost/format.hpp>
+#include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/scoped_thread.hpp>
 
@@ -19,8 +20,8 @@
 #include "db/PostgresProcessor.h"
 #include "test/tests.h"
 
-/* Build v.0.0.10 from 19.04.2021 */
-const uint32_t PATCH = 10;
+/* Build v.0.0.11 from 12.07.2021 */
+const uint32_t PATCH = 11;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -44,21 +45,25 @@ int main()
 
         /* separate thread to start tcp server */
         boost::asio::io_service ios;
-        boost::asio::signal_set signals(ios, SIGINT);
 
         boost::thread_group threads;
-        boost::asio::io_service::work work(ios);
+        boost::asio::io_context::work work(ios);
+        boost::asio::signal_set signals(work.get_io_context(), SIGINT);
 
         for (int i = 0; i < boost::thread::hardware_concurrency(); ++i)
         {
-            threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
+            threads.create_thread([&]() {
+                work.get_io_context().run();
+            });
         }
-        ios.post(boost::bind(&AsyncTcpServer::StartTcpServer, std::ref(ios)));
+        boost::asio::post(work.get_io_context(), [&]() {
+            AsyncTcpServer::StartTcpServer(std::ref(work.get_io_context()));
+        });
 
         /* asynchronous wait for Ctrl + C signal to occur */
         signals.async_wait([&](const boost::system::error_code& error, int signal_number) {
-            AsyncTcpServer::StopTcpServer(std::ref(ios));
-            ios.stop();
+            AsyncTcpServer::StopTcpServer(std::ref(work.get_io_context()));
+            work.get_io_context().stop();
         });
 
         threads.join_all();

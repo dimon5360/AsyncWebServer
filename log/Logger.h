@@ -15,13 +15,5 @@ class ConsoleLogger {
 
 public:
         
-    void Write(std::string log) noexcept;
-
-    ConsoleLogger() {
-        std::cout << "Construct logger class\n";
-    }
-
-    ~ConsoleLogger() {
-        std::cout << "Destruct logger class\n";
-    }
+    void Write(const std::string &&log) const noexcept;
 };

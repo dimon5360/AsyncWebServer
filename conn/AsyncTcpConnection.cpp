@@ -39,13 +39,13 @@ private:
     K squaresSumm = 0; // keep last value of squares summ
 
     /* setter */
-    void Set(K& value) {
+    void Set(const K& value) {
         std::unique_lock lock(mutex_);
-        this->_set.insert(value);
+        _set.insert(value);
     }
 
     /* check contains */
-    bool IsContain(K& value) {
+    bool IsContain(const K& value) {
         std::shared_lock lock(mutex_);
         return _set.contains(value);
     }
@@ -57,23 +57,24 @@ public:
      *  @param  value Received random number from client
      *  @return Average of numbers squares summ
      */
-    K GetAverage(K value) {
+    const K& GetAverage(const K &&value) noexcept {
+
         /* New random value is already in container
          * We don't need to calculate new average of numbers' squares */
         if (IsContain(value)) {
-            return static_cast<K>(squaresSumm / _set.size());
+            return static_cast<const K&>(squaresSumm / _set.size());
         }
         /* New random value is unique
          * We need to calculate it */
         else {
             Set(value);
             squaresSumm += (value * value);
-            return static_cast<K>(squaresSumm / _set.size());
+            return static_cast<const K&>(squaresSumm / _set.size());
         }
     }
 
     /* return dump of set data */
-    std::string Dump() {
+    const std::string& Dump() const noexcept {
         std::stringstream ss;
 
         std::shared_lock lock(mutex_);
@@ -165,34 +166,28 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
 {
     if (!error)
     {
-        std::string in_hello_msg{ buf.data(), recvBytes };
+        std::string_view in_hello_msg{ buf.data(), recvBytes };
+        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string { buf.data(), recvBytes } % recvBytes));
 
-        {
-            std::stringstream log;
+        if (in_hello_msg.starts_with("hello server")) {
 
-            log << "<< " << "\"" << in_hello_msg << "\" [" << recvBytes << "]\n";
-            connectionLogger.Write(log.str());
+            std::string resp{ boost::str(boost::format("%1%%2%") % hello_msg % id_) };
+            connectionLogger.Write(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
+
+            socket_.async_write_some(boost::asio::buffer(resp),
+                [&](const boost::system::error_code& error,
+                    std::size_t bytes_transferred) {
+                        HandleWrite(error);
+                });
+        } else {
+            connectionLogger.Write(boost::str(boost::format(
+                "Invalid hello message from user %1%: \"%2%\"\n") % id_ % in_hello_msg));
+            Shutdown();
         }
-
-        std::stringstream resp;
-        resp << hello_msg << id_;
-
-        {
-            std::stringstream log;
-            log << ">> " << "\"" << resp.str() << "\" [" << resp.str().size() << "]\n";
-            connectionLogger.Write(log.str());
-        }
-
-        
-        socket_.async_write_some(boost::asio::buffer(resp.str()),
-            [&](const boost::system::error_code& error,
-            std::size_t bytes_transferred) {
-            HandleWrite(error);
-        });
     }
     else {
         connectionLogger.Write(boost::str(boost::format(
-            "Handshake error user: %1% \"%2%\"\n") % id_ % error.message()));
+            "Handle authenticatin error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
@@ -223,19 +218,14 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
     if (!error)
     {
         std::string_view in_msg{ buf.data(), recvBytes };
-
-        {
-            std::stringstream log;
-            log << "<< " << "\"" << in_msg << "\" [" << recvBytes << "]\n";
-            connectionLogger.Write(log.str());
-        }
+        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string { buf.data(), recvBytes } % recvBytes));
 
         to_lower(std::move(in_msg.data()));
 
         if (in_msg.starts_with(tech_msg_header)) {
             auto item = in_msg.find(tech_req_msg);
             int value = boost::lexical_cast<int>(in_msg.substr(item + tech_req_msg.size()));
-            StartWrite(_gset.GetAverage(value));
+            StartWrite(_gset.GetAverage(std::move(value)));
         }
     }
     else {
@@ -252,16 +242,11 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
  */
 void AsyncTcpConnection::StartWrite(uint64_t value)
 {
-    std::stringstream resp;
-    resp << tech_msg_header << id_ << ", " << tech_resp_msg << value;
+    std::string resp{ boost::str(boost::format("%1%%2%,%3%%4%") 
+        % tech_msg_header % id_ % tech_resp_msg % value) };
+    connectionLogger.Write(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
 
-    {
-        std::stringstream log;
-        log << ">> " << "\"" << resp.str() << "\" [" << resp.str().size() << "]\n";
-        connectionLogger.Write(log.str());
-    }
-
-    socket_.async_write_some(boost::asio::buffer(resp.str()),
+    socket_.async_write_some(boost::asio::buffer(resp),
         [&](const boost::system::error_code& error,
         std::size_t bytes_transferred) {
         HandleWrite(error);

@@ -13,7 +13,7 @@
 class IConfig {
 
 private:
-    typedef std::string config_record;
+    using config_record = std::string;
     std::ifstream config_;
     std::unordered_map<config_record, config_record> mcfg;
 
@@ -22,8 +22,8 @@ public:
     void Read();
     void PrintContain() noexcept;
     void Close() noexcept;
-    void Open(std::string configname);
-    config_record GetRecordByKey(config_record key) const;
+    void Open(const std::string&& configname);
+    const IConfig::config_record& GetRecordByKey(const config_record&& key) const;
 
     /* constructor */
     IConfig() {

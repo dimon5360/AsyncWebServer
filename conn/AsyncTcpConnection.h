@@ -46,7 +46,8 @@ public:
     static connection_ptr create(boost::asio::io_service& io_service,
         boost::asio::ssl::context& context, uint64_t id)
     {
-        return connection_ptr(new AsyncTcpConnection(io_service, context, id));
+        //return connection_ptr(new AsyncTcpConnection(io_service, context, id));
+        return std::make_shared<AsyncTcpConnection>(io_service, context, id);
     }
 
 
@@ -62,20 +63,27 @@ public:
      */
     void StartAuth();
 
-    AsyncTcpConnection(boost::asio::io_service& io_service_,
+
+    const uint64_t& GetId() const noexcept {
+        return id_;
+    }
+
+    AsyncTcpConnection() = delete;
+    AsyncTcpConnection(const AsyncTcpConnection&) = delete;
+    AsyncTcpConnection& operator=(const AsyncTcpConnection&) = delete;
+    AsyncTcpConnection(const AsyncTcpConnection&&) = delete;
+    AsyncTcpConnection&& operator=(const AsyncTcpConnection&&) = delete;
+
+    AsyncTcpConnection(boost::asio::io_service& io_service,
         boost::asio::ssl::context& context_, uint64_t id)
-        : socket_(io_service_, context_),
+        : socket_(io_service, context_),
         id_(id)
     {
-        std::cout << "Construct AsyncTcpConnection class for user ID = " << id_ << "\n";
+        std::cout << "AsyncTcpConnection constructor for user ID = " << id_ << "\n";
     }
 
     ~AsyncTcpConnection() {
-        std::cout << "Destruct AsyncTcpConnection class for user ID = " << id_ << "\n";
-    }
-
-    uint64_t GetId() const {
-        return id_;
+        std::cout << "AsyncTcpConnection destructor for user ID = " << id_ << "\n";
     }
 
 private:

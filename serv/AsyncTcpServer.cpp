@@ -35,16 +35,14 @@ ConsoleLogger serverLogger;
  *  @param  error Boost system error object reference
  *  @return None
  */
-void AsyncTcpServer::HandleAccept(AsyncTcpConnection::connection_ptr new_connection,
-    const boost::system::error_code error)
+void AsyncTcpServer::HandleAccept(AsyncTcpConnection::connection_ptr& new_connection,
+    const boost::system::error_code& error)
 {
     if (!error)
     {
         serverLogger.Write("New connection accepted. Start reading data.\n");
         new_connection->StartAuth();
-
         connMan_.CreateNewConnection(new_connection->GetId(), new_connection);
-
         StartAccept();
     }
     else {
@@ -61,9 +59,11 @@ void AsyncTcpServer::StartAccept() {
     uint64_t connId = connMan_.GetFreeId();
 
     AsyncTcpConnection::connection_ptr new_connection =
-        AsyncTcpConnection::create(io_service_, context_, connId);
+        AsyncTcpConnection::create(io_service, context_, connId);
 
-    std::cout << "Current thread ID = " << std::this_thread::get_id() << std::endl;
+    std::cout << "Current thread ID = " << std::this_thread::get_id();
+    serverLogger.Write(boost::str(boost::format("Current thread ID = %1% \n") % 
+        std::this_thread::get_id()));
 
     acceptor_.async_accept(new_connection->socket(),
         std::bind(&AsyncTcpServer::HandleAccept, this, new_connection,
@@ -73,12 +73,15 @@ void AsyncTcpServer::StartAccept() {
 /***********************************************************************************
  *  @brief  Async server constructor
  */
-AsyncTcpServer::AsyncTcpServer(boost::asio::io_service& io_service, uint16_t port) :
-    io_service_(io_service),
+AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t port) :
+    io_service(std::ref(io_service)),
     acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
     context_(boost::asio::ssl::context::tlsv13)
 {
-    std::cout << "Construct AsyncTcpServer class\n";
+    serverLogger.Write("AsyncTcpServer constructor\n");
+
+    std::cout << "AsyncTcpServer constructor\n";
+
     serverLogger.Write(boost::str(boost::format("Start listening to %1% port\n") % port));
 
     context_.set_options(boost::asio::ssl::context::default_workarounds |
@@ -90,6 +93,7 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service& io_service, uint16_t por
     context_.use_tmp_dh_file("dh2048.pem");
 
     StartAccept();
+    io_service.run();
 }
 
 static IConfig scfg;
@@ -103,15 +107,11 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
     try {
         /* open db config file */
         scfg.Open("server.ini");
-        std::stringstream sport(scfg.GetRecordByKey("port"));
-        uint16_t port;
-        sport >> port;
-
-        std::unique_ptr<AsyncTcpServer> serv = std::make_unique<AsyncTcpServer>(ios, port);
-        ios.run();
+        uint16_t port = boost::lexical_cast<uint16_t>(scfg.GetRecordByKey("port"));
+        std::make_unique<AsyncTcpServer>(std::move(ios), port);
     }
     catch (std::exception& ex) {
-        std::cout << "StartTcpServer exception: " << ex.what() << std::endl;
+        serverLogger.Write(boost::str(boost::format("StartTcpServer exception: %1%\n") % ex.what()));
     }
 }
 

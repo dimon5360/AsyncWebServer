@@ -26,7 +26,6 @@ void IConfig::Read() {
             continue;
         }
 
-        std::string rec;
         std::stringstream ss(record);
         ss >> key >> symbol >> value;
         mcfg[key] = value;
@@ -45,7 +44,7 @@ void IConfig::Close() noexcept {
     config_.close();
 }
 
-void IConfig::Open(std::string configname) {
+void IConfig::Open(const std::string&& configname) {
     config_.open(configname); // launch under debug from VS
     if (!config_) {
         throw std::exception("Config TCP server file is invalid");
@@ -54,7 +53,7 @@ void IConfig::Open(std::string configname) {
     Read();
 }
 
-IConfig::config_record IConfig::GetRecordByKey(IConfig::config_record key) const {
+const IConfig::config_record& IConfig::GetRecordByKey(const IConfig::config_record&& key) const {
 
     config_record ret;
     try {

@@ -46,7 +46,7 @@ public:
      *  @param  connPtr Reference to async tcp connection class
      *  @return None
      */
-    void CreateNewConnection(K connId, AsyncTcpConnection::connection_ptr connPtr)
+    void CreateNewConnection(const K& connId, AsyncTcpConnection::connection_ptr connPtr)
     {        
         std::unique_lock lk(mutex_);
         clientsMap_.insert({ connId, connPtr });

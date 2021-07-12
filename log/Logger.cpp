@@ -17,7 +17,7 @@
 #include "Logger.h"
 
 /* write log string */
-void ConsoleLogger::Write(std::string log) noexcept {
+void ConsoleLogger::Write(const std::string&& log) const noexcept {
 
-    spdlog::info(log);
+    //spdlog::info(log);
 }

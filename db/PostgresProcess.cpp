@@ -40,7 +40,7 @@ std::string SHA256(std::string data)
     encoder.Attach(new CryptoPP::StringSink(output));
     encoder.Put(abDigest, sizeof(abDigest));
     encoder.MessageEnd();
-    return output;// std::string((char*)abDigest, CryptoPP::SHA256::DIGESTSIZE);
+    return output;
 }
 
 /*********************************************************
