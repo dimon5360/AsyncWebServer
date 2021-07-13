@@ -3,7 +3,7 @@
  *
  */
 
-/* std C++ lib headers */
+ /* std C++ lib headers */
 #include <iostream>
 #include <unordered_set>
 #include <memory>
@@ -57,7 +57,7 @@ public:
      *  @param  value Received random number from client
      *  @return Average of numbers squares summ
      */
-    const K& GetAverage(const K &&value) noexcept {
+    const K& GetAverage(const K&& value) noexcept {
 
         /* New random value is already in container
          * We don't need to calculate new average of numbers' squares */
@@ -103,10 +103,10 @@ AsyncTcpConnection::ssl_socket::lowest_layer_type& AsyncTcpConnection::socket() 
  */
 void AsyncTcpConnection::StartAuth() {
 
-    socket_.async_handshake(boost::asio::ssl::stream_base::server, 
+    socket_.async_handshake(boost::asio::ssl::stream_base::server,
         [&](const boost::system::error_code& error) {
-        HandleHandshake(error);
-    });
+            HandleHandshake(error);
+        });
 }
 
 /***********************************************************************************
@@ -119,14 +119,14 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
     {
         socket_.async_read_some(boost::asio::buffer(buf),
             [&](const boost::system::error_code& error,
-            std::size_t recvBytes) {
-            HandleAuth(error, recvBytes);
-        });
+                std::size_t recvBytes) {
+                    HandleAuth(error, recvBytes);
+            });
     }
     else
     {
         connectionLogger.Write(boost::str(boost::format(
-            "Handshake error user: %1% \"%2%\"\n") % id_ % error.message()));
+            "HandleHandshake error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
@@ -138,7 +138,7 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
 void AsyncTcpConnection::Shutdown() {
     socket_.async_shutdown([&](const boost::system::error_code& error) {
         Close(error);
-    });
+        });
 }
 
 /***********************************************************************************
@@ -167,7 +167,7 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
     if (!error)
     {
         std::string_view in_hello_msg{ buf.data(), recvBytes };
-        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string { buf.data(), recvBytes } % recvBytes));
+        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
 
         if (in_hello_msg.starts_with("hello server")) {
 
@@ -179,7 +179,8 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
                     std::size_t bytes_transferred) {
                         HandleWrite(error);
                 });
-        } else {
+        }
+        else {
             connectionLogger.Write(boost::str(boost::format(
                 "Invalid hello message from user %1%: \"%2%\"\n") % id_ % in_hello_msg));
             Shutdown();
@@ -202,8 +203,8 @@ void AsyncTcpConnection::StartRead()
     socket_.async_read_some(boost::asio::buffer(buf),
         [&](const boost::system::error_code& error,
             std::size_t recvBytes) {
-            HandleRead(error, recvBytes);
-    });
+                HandleRead(error, recvBytes);
+        });
 }
 
 /***********************************************************************************
@@ -217,8 +218,25 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 {
     if (!error)
     {
+#if CHAT
         std::string_view in_msg{ buf.data(), recvBytes };
-        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string { buf.data(), recvBytes } % recvBytes));
+        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
+
+        to_lower(std::move(in_msg.data()));
+
+        if (in_msg.starts_with(tech_msg_header)) {
+            auto item = in_msg.find(tech_req_msg);
+
+            auto dstUserId = boost::lexical_cast<uint64_t>(in_msg.substr(tech_msg_header.size(), in_msg.find(",") - tech_msg_header.size()));
+            std::cout << "Message from user #" << id_ << " for user #" << dstUserId << std::endl;
+
+            std::string msg{ in_msg.substr(item + tech_req_msg.size()) };
+            ResendMessage(dstUserId, msg);
+            StartRead();
+        }
+#else 
+        std::string_view in_msg{ buf.data(), recvBytes };
+        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
 
         to_lower(std::move(in_msg.data()));
 
@@ -227,13 +245,42 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
             int value = boost::lexical_cast<int>(in_msg.substr(item + tech_req_msg.size()));
             StartWrite(_gset.GetAverage(std::move(value)));
         }
+#endif /* CHAT */
     }
     else {
         connectionLogger.Write(boost::str(boost::format(
-            "Handshake error user: %1% \"%2%\"\n") % id_ % error.message()));
+            "HandleRead error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
+
+#if CHAT
+/***********************************************************************************
+ *  @brief  Trigger to send the message from current user to destiny user
+ *  @note   Function passes message and user ID to the connection manager
+ *  @param  dstUserId Destiny user ID
+ *  @param  msg Message string which must be sended
+ *  @return None
+ */
+void AsyncTcpConnection::ResendMessage(uint64_t dstUserId, const std::string& msg) noexcept {
+    connMan_.ResendUserMessage(dstUserId, msg);
+}
+
+/***********************************************************************************
+ *  @brief  Public function to initiate retransmit message to another user
+ *  @note   Function has no callback
+ *  @param  msg Message string which must be sended
+ *  @return None
+ */
+void AsyncTcpConnection::StartWriteMessage(const std::string& msg)
+{
+    socket_.async_write_some(boost::asio::buffer(msg),
+        [&](const boost::system::error_code& error,
+            std::size_t bytes_transferred) {
+                std::cout << "Message sended\n";
+        });
+}
+#endif /* CHAT */
 
 /***********************************************************************************
  *  @brief  Start async writing process from socket
@@ -242,15 +289,15 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
  */
 void AsyncTcpConnection::StartWrite(uint64_t value)
 {
-    std::string resp{ boost::str(boost::format("%1%%2%,%3%%4%") 
+    std::string resp{ boost::str(boost::format("%1%%2%,%3%%4%")
         % tech_msg_header % id_ % tech_resp_msg % value) };
     connectionLogger.Write(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
 
     socket_.async_write_some(boost::asio::buffer(resp),
         [&](const boost::system::error_code& error,
-        std::size_t bytes_transferred) {
-        HandleWrite(error);
-    });
+            std::size_t bytes_transferred) {
+                HandleWrite(error);
+        });
 }
 
 /***********************************************************************************
@@ -266,7 +313,7 @@ void AsyncTcpConnection::HandleWrite(const boost::system::error_code& error)
     }
     else {
         connectionLogger.Write(boost::str(boost::format(
-            "Handshake error user: %1% \"%2%\"\n") % id_ % error.message()));
+            "HandleWrite error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }

@@ -20,8 +20,8 @@
 #include "db/PostgresProcessor.h"
 #include "test/tests.h"
 
-/* Build v.0.0.11 from 12.07.2021 */
-const uint32_t PATCH = 11;
+/* Build v.0.0.12 from 14.07.2021 */
+const uint32_t PATCH = 12;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 

@@ -40,6 +40,25 @@ public:
         return connId;
     }
 
+#if CHAT
+    /***********************************************************************************
+     *  @brief  Public function to initiate retransmit message to another user
+ *  @param  dstUserId Destiny user ID
+     *  @param  msg Message string which must be sended
+     *  @return None
+     */
+    void ResendUserMessage(const K& connId, const std::string& msg) const {
+        std::shared_lock lk(mutex_);
+        if (clientsMap_.contains(connId)) {
+            clientsMap_.at(connId)->StartWriteMessage(msg);
+            std::cout << "Message for user #" << connId << " sended\n";
+        }
+        else {
+            std::cout << "User #" << connId << " not found\n";
+        }
+    }
+#endif /* CHAT */
+
     /***********************************************************************************
      *  @brief  Func to add new connection tcp object to map
      *  @param  id New client id
@@ -47,7 +66,7 @@ public:
      *  @return None
      */
     void CreateNewConnection(const K& connId, AsyncTcpConnection::connection_ptr connPtr)
-    {        
+    {
         std::unique_lock lk(mutex_);
         clientsMap_.insert({ connId, connPtr });
     }
@@ -68,7 +87,7 @@ public:
      *  @param  connId Client id to remove connection
      *  @return None
      */
-    bool Contains(K connId)
+    bool Contains(const K& connId)
     {
         std::shared_lock lk(mutex_);
         return clientsMap_.contains(connId);
