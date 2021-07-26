@@ -26,6 +26,7 @@
 #include "../conn/ConnectionManager.h"
 
 ConsoleLogger connectionLogger;
+MessageBroker msgBroker;
 
 template <class K>
 class GuardedSet {
@@ -231,7 +232,8 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
             std::cout << "Message from user #" << id_ << " for user #" << dstUserId << std::endl;
 
             std::string msg{ in_msg.substr(item + tech_req_msg.size()) };
-            ResendMessage(dstUserId, msg);
+            msgBroker.PushMessage(dstUserId, std::move(msg));
+            //ResendMessage(dstUserId, msg);
             StartRead();
         }
 #else 
@@ -262,9 +264,9 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
  *  @param  msg Message string which must be sended
  *  @return None
  */
-void AsyncTcpConnection::ResendMessage(uint64_t dstUserId, const std::string& msg) noexcept {
+/*void AsyncTcpConnection::ResendMessage(uint64_t dstUserId, const std::string& msg) noexcept {
     connMan_.ResendUserMessage(dstUserId, msg);
-}
+}*/
 
 /***********************************************************************************
  *  @brief  Public function to initiate retransmit message to another user

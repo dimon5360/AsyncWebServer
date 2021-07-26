@@ -25,7 +25,7 @@
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
 
-ConnectionManager<uint64_t> connMan_;
+ConnectionManager connMan_;
 
 ConsoleLogger serverLogger;
 
@@ -85,12 +85,11 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t po
     serverLogger.Write(boost::str(boost::format("Start listening to %1% port\n") % port));
 
     context_.set_options(boost::asio::ssl::context::default_workarounds |
-        boost::asio::ssl::context::no_sslv2 |
-        boost::asio::ssl::context::single_dh_use);
+        boost::asio::ssl::context::no_sslv2|
+        boost::asio::ssl::context::no_sslv3);
 
     context_.use_certificate_chain_file("user.crt");
     context_.use_private_key_file("user.key", boost::asio::ssl::context::pem);
-    context_.use_tmp_dh_file("dh2048.pem");
 
     StartAccept();
     io_service.run();

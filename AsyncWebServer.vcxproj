@@ -120,6 +120,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,6 +149,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="config\config.cpp" />
+    <ClCompile Include="conn\AsyncClient.cpp" />
     <ClCompile Include="conn\AsyncTcpConnection.cpp" />
     <ClCompile Include="crypto\dh.cpp" />
     <ClCompile Include="crypto\rsa.cpp" />
@@ -159,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config\config.h" />
+    <ClInclude Include="conn\AsyncClient.h" />
     <ClInclude Include="conn\AsyncTcpConnection.h" />
     <ClInclude Include="conn\ConnectionManager.h" />
     <ClInclude Include="crypto\dh.h" />

@@ -152,16 +152,16 @@ private:
     void HandleRead(const boost::system::error_code& error,
         std::size_t recvBytes);
 
-#if CHAT
-    /***********************************************************************************
-     *  @brief  Trigger to send the message from current user to destiny user
-     *  @note   Function passes message and user ID to the connection manager
-     *  @param  dstUserId Destiny user ID
-     *  @param  msg Message string which must be sended
-     *  @return None
-     */
-    void ResendMessage(uint64_t dstUserId, const std::string& msg)  noexcept;
-#endif /* CHAT */
+//#if CHAT
+//    /***********************************************************************************
+//     *  @brief  Trigger to send the message from current user to destiny user
+//     *  @note   Function passes message and user ID to the connection manager
+//     *  @param  dstUserId Destiny user ID
+//     *  @param  msg Message string which must be sended
+//     *  @return None
+//     */
+//    void ResendMessage(uint64_t dstUserId, const std::string& msg)  noexcept;
+//#endif /* CHAT */
 
     /***********************************************************************************
     *  @brief  Start async writing process from socket
