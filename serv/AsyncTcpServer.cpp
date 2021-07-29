@@ -107,6 +107,7 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
         /* open db config file */
         scfg.Open("server.ini");
         uint16_t port = boost::lexical_cast<uint16_t>(scfg.GetRecordByKey("port"));
+        connMan_();
         std::make_unique<AsyncTcpServer>(std::move(ios), port);
     }
     catch (std::exception& ex) {

@@ -170,10 +170,12 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
         std::string_view in_hello_msg{ buf.data(), recvBytes };
         connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
 
-        if (in_hello_msg.starts_with("hello server")) {
+        if (in_hello_msg.starts_with(hello_msg_header)) {
 
             std::string resp{ boost::str(boost::format("%1%%2%") % hello_msg % id_) };
             connectionLogger.Write(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
+
+
 
             socket_.async_write_some(boost::asio::buffer(resp),
                 [&](const boost::system::error_code& error,
@@ -233,7 +235,6 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 
             std::string msg{ in_msg.substr(item + tech_req_msg.size()) };
             msgBroker.PushMessage(dstUserId, std::move(msg));
-            //ResendMessage(dstUserId, msg);
             StartRead();
         }
 #else 
@@ -257,17 +258,6 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 }
 
 #if CHAT
-/***********************************************************************************
- *  @brief  Trigger to send the message from current user to destiny user
- *  @note   Function passes message and user ID to the connection manager
- *  @param  dstUserId Destiny user ID
- *  @param  msg Message string which must be sended
- *  @return None
- */
-/*void AsyncTcpConnection::ResendMessage(uint64_t dstUserId, const std::string& msg) noexcept {
-    connMan_.ResendUserMessage(dstUserId, msg);
-}*/
-
 /***********************************************************************************
  *  @brief  Public function to initiate retransmit message to another user
  *  @note   Function has no callback

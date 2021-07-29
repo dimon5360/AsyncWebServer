@@ -152,17 +152,6 @@ private:
     void HandleRead(const boost::system::error_code& error,
         std::size_t recvBytes);
 
-//#if CHAT
-//    /***********************************************************************************
-//     *  @brief  Trigger to send the message from current user to destiny user
-//     *  @note   Function passes message and user ID to the connection manager
-//     *  @param  dstUserId Destiny user ID
-//     *  @param  msg Message string which must be sended
-//     *  @return None
-//     */
-//    void ResendMessage(uint64_t dstUserId, const std::string& msg)  noexcept;
-//#endif /* CHAT */
-
     /***********************************************************************************
     *  @brief  Start async writing process from socket
     *  @param  value Average of squares summ from set (container)
@@ -181,10 +170,11 @@ private:
     ssl_socket socket_;
 
     /* msgs headers to exchange with clients */
-    const std::string hello_msg = std::string("hello user id=");
-    const std::string tech_msg_header = std::string("user id=");
-    const std::string tech_req_msg = std::string("number=");
-    const std::string tech_resp_msg = std::string("summ=");
+    const std::string hello_msg{ "hello user id=" };
+    const std::string hello_msg_header{ "hello server" };
+    const std::string tech_msg_header{ "user id=" };
+    const std::string tech_req_msg{ "number=" };
+    const std::string tech_resp_msg{ "summ=" };
 
     /* unique id of client */
     uint64_t id_;
