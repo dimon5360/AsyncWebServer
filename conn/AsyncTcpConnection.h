@@ -49,7 +49,6 @@ public:
     static connection_ptr create(boost::asio::io_service& io_service,
         boost::asio::ssl::context& context, uint64_t id)
     {
-        //return connection_ptr(new AsyncTcpConnection(io_service, context, id));
         return std::make_shared<AsyncTcpConnection>(io_service, context, id);
     }
 
@@ -173,7 +172,7 @@ private:
     const std::string hello_msg{ "hello user id=" };
     const std::string hello_msg_header{ "hello server" };
     const std::string tech_msg_header{ "user id=" };
-    const std::string tech_req_msg{ "number=" };
+    const std::string tech_req_msg{ "message=" };
     const std::string tech_resp_msg{ "summ=" };
 
     /* unique id of client */

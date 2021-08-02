@@ -137,9 +137,10 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
 *  @return None
 */
 void AsyncTcpConnection::Shutdown() {
-    socket_.async_shutdown([&](const boost::system::error_code& error) {
+    socket_.async_shutdown(
+        [&](const boost::system::error_code& error) {
         Close(error);
-        });
+    });
 }
 
 /***********************************************************************************
