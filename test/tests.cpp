@@ -1,37 +1,71 @@
+/******************************************************
+ *  @file       test.cpp
+ *  @brief      Unit tests implementations
+ *
+ *  @author     Kalmykov Dmitry
+ *  @date       19.08.2021
+ *  @modified   19.08.2021
+ *  @version    1.0
+ */
 
+ /* local C++ headers */
 #include "tests.h"
 
-#if UNIT_TEST     
+/* std C++ lib headers */
+#include <memory>
+#include <string>
 
-#if USE_COROUTINES
-static void test_start_server();
-#endif /* USE_COROUTINES */
+/* external C++ libs headers -------------------------------- */
+/* spdlog C++ lib */
+#include <spdlog/spdlog.h>
 
-#if USER_RSA_CRYPTO
+#if UNIT_TEST  
+
+using testcase_t = enum class Testcase {
+    test_RSACryptoAlg = 1,
+    test_DHCryptoAlg,
+    test_Coroutines,
+    test_JsonParser,
+};
+
+/* tests declarations --------------------------------------- */
+
+#if TEST_RSA_CRYPTO
 static int test_rsa_enc_dec();
 #endif /* USER_RSA_CRYPTO */
 
-#if USER_DH_CRYPTO
+#if TEST_DH_CRYPTO
 static int test_dh_alg();
 #endif /* USER_DH_CRYPTO */
 
-int tests() {
-
-#if USE_COROUTINES
-    test_start_server();
+#if TEST_COROUTINES
+static void test_coroutines();
 #endif /* USE_COROUTINES */
 
-#if USER_RSA_CRYPTO
-    test_rsa_enc_dec();
-#endif /* USER_RSA_CRYPTO */
+#if TEST_PARSE_JSON
+static void test_parse_json();
+#endif /* TEST_PARSE_JSON */
 
-#if USER_DH_CRYPTO
-    test_dh_alg();
-#endif /* USER_DH_CRYPTO */
-    return 0;
+
+static void tests_start(testcase_t testcase);
+
+
+/***************************************************************
+ *  @brief  Function calls defined unit tests
+ *  @return Unit tests code result
+ ***************************************************************/
+
+unittest_code_t init_unit_tests() {
+
+    unittest_code_t ret = UnitestCode::unittest_ok;
+    tests_start(Testcase::test_JsonParser);
+
+    return ret;
 }
 
-#if USER_RSA_CRYPTO
+/* tests implementations ---------------------------------- */
+
+#if TEST_RSA_CRYPTO
 #include "../crypto/rsa.h"
 
 static int test_rsa_enc_dec() {
@@ -48,7 +82,7 @@ static int test_rsa_enc_dec() {
 }
 #endif /* USER_RSA_CRYPTO */
 
-#if USER_DH_CRYPTO
+#if TEST_DH_CRYPTO
 
 #include "../crypto/dh.h"
 static int test_dh_alg() {
@@ -70,7 +104,7 @@ static int test_dh_alg() {
 }
 #endif /* USER_DH_CRYPTO */
 
-#if USE_JTHREAD
+#if TEST_JTHREAD
 #include <coroutine>
 #include <iostream>
 #include <stdexcept>
@@ -113,7 +147,7 @@ task resuming_on_new_thread(std::jthread& out) {
 #endif /* USE_JTHREAD */
 
 
-#if USE_COROUTINES
+#if TEST_COROUTINES
 
 #include <cstdlib>
 #include <deque>
@@ -301,7 +335,7 @@ awaitable<void> listener(tcp::acceptor acceptor)
     }
 }
 
-static void test_start_server() {
+static void test_coroutines() {
 
     try
     {
@@ -327,5 +361,40 @@ static void test_start_server() {
 }
 
 #endif /* USE_COROUTINES */
+
+#if TEST_PARSE_JSON
+#include "../utils/json.h"
+#include <memory>
+
+static void test_parse_json() {
+    std::unique_ptr jsonParser = std::make_unique<JsonParser>();
+    jsonParser->handle();
+}
+#endif /* TEST_PARSE_JSON */
+
+/* ----------------------------------- */
+static void tests_start(testcase_t testcase) {
+
+    switch (testcase) {
+
+#if TEST_RSA_CRYPTO
+    case Testcase::test_RSACryptoAlg: test_rsa_enc_dec(); break;
+#endif /* USER_RSA_CRYPTO */
+
+#if TEST_DH_CRYPTO
+    case Testcase::test_DHCryptoAlg: test_dh_alg(); break;
+#endif /* USER_DH_CRYPTO */
+
+#if TEST_COROUTINES
+    case Testcase::test_Coroutines: test_coroutines(); break;
+#endif /* USE_COROUTINES */
+
+#if TEST_PARSE_JSON
+    case Testcase::test_JsonParser: test_parse_json(); break;
+#endif /* TEST_PARSE_JSON */
+
+    default: spdlog::error("Undefined test case");
+    }
+}
 
 #endif /* UNIT_TEST */

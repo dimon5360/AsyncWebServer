@@ -25,7 +25,6 @@
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
 
-ConsoleLogger connectionLogger;
 MessageBroker msgBroker;
 
 template <class K>
@@ -126,7 +125,7 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
     }
     else
     {
-        connectionLogger.Write(boost::str(boost::format(
+        ConsoleLogger::Info(boost::str(boost::format(
             "HandleHandshake error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
@@ -151,7 +150,7 @@ void AsyncTcpConnection::Shutdown() {
 void AsyncTcpConnection::Close(const boost::system::error_code& error) {
     if (connMan_.Contains(id_))
     {
-        connectionLogger.Write(boost::str(boost::format("Close connection user: %1% \n") % id_));
+        ConsoleLogger::Info(boost::str(boost::format("Close connection user: %1% \n") % id_));
         socket_.next_layer().close();
         connMan_.RemoveConnection(id_);
     }
@@ -169,12 +168,12 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
     if (!error)
     {
         std::string_view in_hello_msg{ buf.data(), recvBytes };
-        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
+        ConsoleLogger::Info(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
 
         if (in_hello_msg.starts_with(hello_msg_header)) {
 
             std::string resp{ boost::str(boost::format("%1%%2%") % hello_msg % id_) };
-            connectionLogger.Write(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
+            ConsoleLogger::Info(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
 
 
 
@@ -185,13 +184,13 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
                 });
         }
         else {
-            connectionLogger.Write(boost::str(boost::format(
+            ConsoleLogger::Info(boost::str(boost::format(
                 "Invalid hello message from user %1%: \"%2%\"\n") % id_ % in_hello_msg));
             Shutdown();
         }
     }
     else {
-        connectionLogger.Write(boost::str(boost::format(
+        ConsoleLogger::Info(boost::str(boost::format(
             "Handle authentication error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
@@ -222,43 +221,34 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 {
     if (!error)
     {
-#if CHAT
-        std::string_view in_msg{ buf.data(), recvBytes };
-        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
+        std::string in_msg{ buf.data(), recvBytes };
+        ConsoleLogger::Info(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
 
         to_lower(std::move(in_msg.data()));
 
         if (in_msg.starts_with(tech_msg_header)) {
             auto item = in_msg.find(tech_req_msg);
 
-            auto dstUserId = boost::lexical_cast<uint64_t>(in_msg.substr(tech_msg_header.size(), in_msg.find(",") - tech_msg_header.size()));
-            std::cout << "Message from user #" << id_ << " for user #" << dstUserId << std::endl;
+            auto srcUserId = boost::lexical_cast<uint64_t>(in_msg.substr(tech_msg_header.size(), in_msg.find(":") - tech_msg_header.size()));
 
-            std::string msg{ in_msg.substr(item + tech_req_msg.size()) };
-            msgBroker.PushMessage(dstUserId, std::move(msg));
+            auto offs = in_msg.find(":");
+            auto ss = in_msg.find(",") - in_msg.find(":");
+            std::cout << offs << " " << ss << std::endl;
+            auto dstUserId = boost::lexical_cast<uint64_t>(in_msg.substr(offs + 1, ss - 1));
+
+            std::cout << "Message from user #" << srcUserId << " for user #" << dstUserId << std::endl;
+
+            msgBroker.PushMessage(dstUserId, std::move(in_msg));
             StartRead();
         }
-#else 
-        std::string_view in_msg{ buf.data(), recvBytes };
-        connectionLogger.Write(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
-
-        to_lower(std::move(in_msg.data()));
-
-        if (in_msg.starts_with(tech_msg_header)) {
-            auto item = in_msg.find(tech_req_msg);
-            int value = boost::lexical_cast<int>(in_msg.substr(item + tech_req_msg.size()));
-            StartWrite(_gset.GetAverage(std::move(value)));
-        }
-#endif /* CHAT */
     }
     else {
-        connectionLogger.Write(boost::str(boost::format(
+        ConsoleLogger::Info(boost::str(boost::format(
             "HandleRead error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }
 }
 
-#if CHAT
 /***********************************************************************************
  *  @brief  Public function to initiate retransmit message to another user
  *  @note   Function has no callback
@@ -273,7 +263,6 @@ void AsyncTcpConnection::StartWriteMessage(const std::string& msg)
                 std::cout << "Message sended\n";
         });
 }
-#endif /* CHAT */
 
 /***********************************************************************************
  *  @brief  Start async writing process from socket
@@ -284,7 +273,7 @@ void AsyncTcpConnection::StartWrite(uint64_t value)
 {
     std::string resp{ boost::str(boost::format("%1%%2%,%3%%4%")
         % tech_msg_header % id_ % tech_resp_msg % value) };
-    connectionLogger.Write(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
+    ConsoleLogger::Info(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
 
     socket_.async_write_some(boost::asio::buffer(resp),
         [&](const boost::system::error_code& error,
@@ -305,7 +294,7 @@ void AsyncTcpConnection::HandleWrite(const boost::system::error_code& error)
         StartRead();
     }
     else {
-        connectionLogger.Write(boost::str(boost::format(
+        ConsoleLogger::Info(boost::str(boost::format(
             "HandleWrite error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
     }

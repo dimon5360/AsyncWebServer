@@ -1,6 +1,10 @@
-/*********************************************
- *
- *
+/*****************************************************************
+ *  @file       PostgresProcessor.h
+ *  @brief      Postgres connection handler class declaration
+ *  @author     Kalmykov Dmitry
+ *  @date       26.03.2021
+ *  @modified   19.08.2021
+ *  @version    0.1
  */
 #pragma once
 

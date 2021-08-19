@@ -1,19 +1,24 @@
-/*********************************************
- *
- *
+/*****************************************************************
+ *  @file       Logger.h
+ *  @brief      Logger class declaration
+ *  @author     Kalmykov Dmitry
+ *  @date       28.04.2021
+ *  @modified   19.08.2021
+ *  @version    0.1
  */
 #pragma once
+
+#define DEBUG_ENABLE
+
 
 class ConsoleLogger {
 
     /* get time code */
-    static uint64_t GetCurrTimeMs() noexcept {
-        const auto systick_now = std::chrono::system_clock::now();
-        const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(systick_now.time_since_epoch());
-        return nowMs.count();
-    }
+    static uint64_t GetCurrTimeMs() noexcept;
 
 public:
         
-    void Write(const std::string &&log) const noexcept;
+    static void Info(const std::string &&log) noexcept;
+    static void Debug(const std::string &&log) noexcept;
+    static void Error(const std::string&& log) noexcept;
 };

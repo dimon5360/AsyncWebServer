@@ -1,6 +1,10 @@
-/*********************************************
- *
- *
+/*****************************************************************
+ *  @file       Logger.cpp
+ *  @brief      Logger class implementation
+ *  @author     Kalmykov Dmitry
+ *  @date       28.04.2021
+ *  @modified   19.08.2021
+ *  @version    0.1
  */
 
 /* std C++ lib headers */
@@ -16,8 +20,26 @@
 /* local C++ headers */
 #include "Logger.h"
 
+uint64_t ConsoleLogger::GetCurrTimeMs() noexcept {
+    const auto systick_now = std::chrono::system_clock::now();
+    const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(systick_now.time_since_epoch());
+    return nowMs.count();
+}
+
 /* write log string */
-void ConsoleLogger::Write(const std::string&& log) const noexcept {
+void ConsoleLogger::Info(const std::string&& log) noexcept {
 
     spdlog::info(log);
+}
+
+/* write log string */
+void ConsoleLogger::Debug(const std::string&& log) noexcept {
+#ifdef DEBUG_ENABLE
+    spdlog::info(log);
+#endif /* DEBUG_ENABLE */
+}
+
+/* write log string */
+void ConsoleLogger::Error(const std::string&& log) noexcept {
+    spdlog::error(log);
 }

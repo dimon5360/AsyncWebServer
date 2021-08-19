@@ -1,7 +1,16 @@
-﻿/*********************************************
- *
- *
+﻿/*****************************************************************
+ *  @file       main.cpp
+ *  @brief      Entry point of program
+ *  @author     Kalmykov Dmitry
+ *  @date       28.04.2021
+ *  @modified   19.08.2021
+ *  @version    1.0
  */
+
+ /* local C++ headers */
+#include "serv/AsyncTcpServer.h"
+#include "db/PostgresProcessor.h"
+#include "test/tests.h"
 
  /* std C++ lib headers */
 #include <iostream>
@@ -14,14 +23,8 @@
 
 #include <spdlog/spdlog.h>
 
- /* local C++ headers */
-#include "serv/AsyncTcpServer.h"
-#include "conn/ConnectionManager.h"
-#include "db/PostgresProcessor.h"
-#include "test/tests.h"
-
-/* Build v.0.0.15 from 02.08.2021 */
-const uint32_t PATCH = 15;
+/* Build v.0.0.16 from 19.08.2021 */
+const uint32_t PATCH = 16;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -31,12 +34,13 @@ const uint32_t MAJOR = 0;
 int main()
 {
 #if UNIT_TEST    
-    return tests();
+    return static_cast<int32_t>(init_unit_tests());
 #else 
 
+    const std::string shello = "Hello. Application version is %1%.%2%.%3%\n";
     /* for corrent output boost error messages */
     SetConsoleOutputCP(1251);
-    spdlog::info(boost::str(boost::format("Hello. Application version is %1%.%2%.%3%\n") % MAJOR % MINOR % PATCH));
+    spdlog::info(boost::str(boost::format(shello) % MAJOR % MINOR % PATCH));
 
     try
     {

@@ -1,5 +1,6 @@
 /.vs/
 /x64/
+/api/
 
 *.ini
 
@@ -9,4 +10,6 @@
 *.pem
 *.srl
 
+*.json
+*.txt
 *.log

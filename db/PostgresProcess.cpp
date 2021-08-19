@@ -1,7 +1,10 @@
-/*********************************************
- *
- *  @version    0.1
+/*****************************************************************
+ *  @file       PostgresProcessor.cpp
+ *  @brief      Postgres connection handler class implementation
+ *  @author     Kalmykov Dmitry
  *  @date       26.03.2021
+ *  @modified   19.08.2021
+ *  @version    0.1
  */
 
 /* std C++ lib headers */

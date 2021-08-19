@@ -1,6 +1,10 @@
-/*********************************************
- *
- *
+/*****************************************************************
+ *  @file       AsyncTcpServer.h
+ *  @brief      Async TCP server class declaration
+ *  @author     Kalmykov Dmitry
+ *  @date       28.04.2021
+ *  @modified   19.08.2021
+ *  @version    1.0
  */
 #pragma once
 
@@ -22,8 +26,9 @@
 #include <boost/asio/ssl.hpp>
 
 /* local C++ headers */
-#include "../conn/AsyncTcpConnection.h"
 #include "../config/config.h"
+#include "../conn/AsyncClient.h"
+#include "../conn/AsyncTcpConnection.h"
 
 class AsyncTcpServer {
 
@@ -35,9 +40,6 @@ private:
     boost::asio::ip::tcp::acceptor acceptor_;
     /* boost ssl context */
     boost::asio::ssl::context context_;
-    /* hash map to keep clients connection pointers */
-    mutable std::unordered_map<uint32_t, AsyncTcpConnection::connection_ptr> clientMap;
-
 
     /***********************************************************************************
      *  @brief  Callback-handler of async accepting process
@@ -45,7 +47,7 @@ private:
      *  @param  error Boost system error object reference
      *  @return None
      */
-    void HandleAccept(AsyncTcpConnection::connection_ptr& new_connection,
+    void HandleAccept(AsyncClient::client_ptr& client,
         const boost::system::error_code& error);
 
     /***********************************************************************************

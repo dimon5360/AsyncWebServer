@@ -29,7 +29,6 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/write.hpp>
 
-
 #define CHAT 1
 
 class AsyncTcpConnection
@@ -66,7 +65,7 @@ public:
     void StartAuth();
 
 
-    const uint64_t& GetId() const noexcept {
+    const uint64_t GetId() const noexcept {
         return id_;
     }
 
@@ -172,6 +171,7 @@ private:
     const std::string hello_msg{ "hello user id=" };
     const std::string hello_msg_header{ "hello server" };
     const std::string tech_msg_header{ "user id=" };
+    const std::string tech_pub_key_msg{ "key=" };
     const std::string tech_req_msg{ "message=" };
     const std::string tech_resp_msg{ "summ=" };
 

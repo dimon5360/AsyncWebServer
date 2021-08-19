@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <mutex>
 #include <shared_mutex>
-#include <queue>
 
 /* boost C++ lib headers */
 #include <boost/bind/placeholders.hpp>
@@ -17,56 +16,9 @@
  /* local C++ headers */
 #include "AsyncTcpConnection.h"
 #include "AsyncClient.h"
+#include "MessageBroker.h"
 
-class MessageBroker {
-
-public:
-    using record_t = std::pair<const uint64_t, const std::string>;
-
-    /***********************************************************************************
-     *  @brief  Push info about new message {msg} for user {connId} to queue
-     *  @param  connId  User ID who must receive message
-     *  @param  msg Message itself
-     *  @return None
-     */
-    void PushMessage(const uint64_t& connId, const std::string&& msg) {
-        std::unique_lock lk(m_);
-        msgQueue.emplace(std::make_pair(connId, msg));
-        msgNum++;
-    }
-
-    /***********************************************************************************
-     *  @brief  Check queue is empty
-     *  @return Check result, true if queue is empty
-     */
-    bool IsQueueEmpty() const noexcept {
-        std::unique_lock lk(m_);
-        return msgNum == 0;
-    }
-
-protected:
-
-    /***********************************************************************************
-     *  @brief  Pull fisrt message from queue
-     *  @return Message info
-     */
-    const record_t PullMessage() {
-        std::unique_lock lk(m_);
-        record_t msg{ msgQueue.front() };
-        msgQueue.pop();
-        msgNum--;
-        return msg;
-    }
-
-private:
-
-    friend class ConnectionManager;
-    std::queue<record_t> msgQueue;
-    mutable std::shared_mutex m_;
-    std::atomic_size_t msgNum;
-};
-
-extern MessageBroker msgBroker;
+#define USE_CLIENT_CLASS 1
 
 class ConnectionManager {
 
@@ -75,10 +27,8 @@ public:
     using id_t = uint64_t;
 
  private:
-
     /* hash map to keep clients connection pointers */
     std::unordered_map<id_t, AsyncTcpConnection::connection_ptr> clientsMap_;
-    std::unordered_map<id_t, AsyncClient::client_ptr> clients_;
     /* mutex object to avoid data race */
     mutable std::shared_mutex mutex_;
 
@@ -87,6 +37,17 @@ public:
     const long long default_delay = 5;
 
 public:
+
+    id_t GetFreeId() {
+        std::shared_lock lk(mutex_);
+
+        /* if currIdConn is overloaded and there are free ids */
+        while (clientsMap_.contains(connId) || connId < DEFAULT_ID) {
+            connId++;
+        }
+
+        return connId;
+    }
 
     /***********************************************************************************
      *  @brief  Operator to start handler of queue in separate thread
@@ -105,17 +66,6 @@ public:
         std::cout << "Destruct connection manager\n";
     }
 
-    id_t GetFreeId() {
-        std::shared_lock lk(mutex_);
-
-        /* if currIdConn is overloaded and there are free ids */
-        while (clientsMap_.contains(connId) || connId < DEFAULT_ID) {
-            connId++;
-        }
-
-        return connId;
-    }
-
     /***********************************************************************************
      *  @brief  Func to add new connection tcp object to map
      *  @param  id New client id
@@ -126,7 +76,6 @@ public:
     {
         std::unique_lock lk(mutex_);
         clientsMap_.insert({ connId, connPtr });
-        clients_.insert({ connId, AsyncClient::AddNewClient(connId, connPtr) });
     }
 
     /***********************************************************************************
@@ -138,7 +87,6 @@ public:
     {
         std::unique_lock lk(mutex_);
         clientsMap_.erase(connId);
-        clients_.erase(connId);
     }
 
     /***********************************************************************************
@@ -168,7 +116,6 @@ public:
 
 private:
 
-#if CHAT
     /***********************************************************************************
      *  @brief  Public function to initiate retransmit message to another user
      *  @param  dstUserId Destiny user ID
@@ -185,7 +132,6 @@ private:
             std::cout << "User #" << conn_user_id << " not found\n";
         }
     }
-#endif /* CHAT */
 
     /***********************************************************************************
      *  @brief  Handler of queue in separate thread
@@ -193,7 +139,7 @@ private:
      *  @param  msg Message string which must be sended
      *  @return None
      */
-    void handle() {
+    void handle() { // TODO: remake, dummy
         std::thread{ [&]() {
             while (true) {
                 if (!msgBroker.IsQueueEmpty()) {

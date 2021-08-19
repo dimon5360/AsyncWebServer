@@ -1,6 +1,10 @@
-/*********************************************
- *
- *
+/*****************************************************************
+ *  @file       AsyncTcpServer.cpp
+ *  @brief      Async TCP server class implementation
+ *  @author     Kalmykov Dmitry
+ *  @date       28.04.2021
+ *  @modified   19.08.2021
+ *  @version    1.0
  */
 
 /* std C++ lib headers */
@@ -24,10 +28,15 @@
 #include "AsyncTcpServer.h"
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
+//#include "../conn/AsyncClient.h"
+
+#if USE_CLIENT_CLASS
+#include "../conn/AsyncClient.h"
+#else
+#include "../conn/AsyncTcpConnection.h"
+#endif /* USE_CLIENT_CLASS */
 
 ConnectionManager connMan_;
-
-ConsoleLogger serverLogger;
 
 /***********************************************************************************
  *  @brief  Callback-handler of async accepting process
@@ -35,18 +44,18 @@ ConsoleLogger serverLogger;
  *  @param  error Boost system error object reference
  *  @return None
  */
-void AsyncTcpServer::HandleAccept(AsyncTcpConnection::connection_ptr& new_connection,
+void AsyncTcpServer::HandleAccept(AsyncClient::client_ptr& client,
     const boost::system::error_code& error)
 {
     if (!error)
     {
-        serverLogger.Write("New connection accepted. Start reading data.\n");
-        new_connection->StartAuth();
-        connMan_.CreateNewConnection(new_connection->GetId(), new_connection);
+        ConsoleLogger::Info("New connection accepted. Start reading data.\n");
+        client->HandleAccept();
+        //connMan_.AddNewClient(client);
         StartAccept();
     }
     else {
-        new_connection->socket().close();
+        client->DisconnectClient();
     }
 }
 
@@ -55,18 +64,16 @@ void AsyncTcpServer::HandleAccept(AsyncTcpConnection::connection_ptr& new_connec
  *  @return None
  */
 void AsyncTcpServer::StartAccept() {
-
-    uint64_t connId = connMan_.GetFreeId();
-
-    AsyncTcpConnection::connection_ptr new_connection =
-        AsyncTcpConnection::create(io_service, context_, connId);
+        
+    AsyncClient::client_ptr new_client = 
+        AsyncClient::CreateNewClient(io_service, context_);
 
     std::cout << "Current thread ID = " << std::this_thread::get_id();
-    serverLogger.Write(boost::str(boost::format("Current thread ID = %1% \n") % 
+    ConsoleLogger::Info(boost::str(boost::format("Current thread ID = %1% \n") %
         std::this_thread::get_id()));
 
-    acceptor_.async_accept(new_connection->socket(),
-        std::bind(&AsyncTcpServer::HandleAccept, this, new_connection,
+    acceptor_.async_accept(new_client->socket(),
+        std::bind(&AsyncTcpServer::HandleAccept, this, new_client,
             std::placeholders::_1));
 }
 
@@ -78,11 +85,11 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t po
     acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
     context_(boost::asio::ssl::context::tlsv13)
 {
-    serverLogger.Write("AsyncTcpServer constructor\n");
+    ConsoleLogger::Info("AsyncTcpServer constructor\n");
 
     std::cout << "AsyncTcpServer constructor\n";
 
-    serverLogger.Write(boost::str(boost::format("Start listening to %1% port\n") % port));
+    ConsoleLogger::Info(boost::str(boost::format("Start listening to %1% port\n") % port));
 
     context_.set_options(boost::asio::ssl::context::default_workarounds |
         boost::asio::ssl::context::no_sslv2|
@@ -111,7 +118,7 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
         std::make_unique<AsyncTcpServer>(std::move(ios), port);
     }
     catch (std::exception& ex) {
-        serverLogger.Write(boost::str(boost::format("StartTcpServer exception: %1%\n") % ex.what()));
+        ConsoleLogger::Info(boost::str(boost::format("StartTcpServer exception: %1%\n") % ex.what()));
     }
 }
 

@@ -1,15 +1,32 @@
+/******************************************************
+ *  @file   test.h
+ *  @brief  Unit tests declarations
+ *
+ *  @author Kalmykov Dmitry
+ *  @date   19.08.2021
+ */
 
 #pragma once
 
-#define UNIT_TEST 0
+#define UNIT_TEST true
 
 #if UNIT_TEST     
 
-#define USER_RSA_CRYPTO 0
-#define USER_DH_CRYPTO  0
-#define USE_JTHREAD     0
-#define USE_COROUTINES  0
+using unittest_code_t = enum class UnitestCode {
+    unittest_ok = 0,
+};
 
-extern int tests();
+/* RSA crypto alg tests */
+#define TEST_RSA_CRYPTO         0
+/* Diffie-Hellman crypto alg tests */
+#define TEST_DH_CRYPTO          0
+/* jthread tests */
+#define TEST_JTHREAD            0
+/* coroutines tests */
+#define TEST_COROUTINES         0
+/* json parser tests */
+#define TEST_PARSE_JSON         1
+
+extern unittest_code_t init_unit_tests();
 
 #endif /* UNIT_TEST */
