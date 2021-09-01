@@ -27,73 +27,11 @@
 
 MessageBroker msgBroker;
 
-template <class K>
-class GuardedSet {
-private:
-
-    /* set (container) to keep unique random numbers from clients */
-    std::unordered_set<K> _set;
-    /* mutex object to avoid data race */
-    mutable std::shared_mutex mutex_;
-
-    K squaresSumm = 0; // keep last value of squares summ
-
-    /* setter */
-    void Set(const K& value) {
-        std::unique_lock lock(mutex_);
-        _set.insert(value);
-    }
-
-    /* check contains */
-    bool IsContain(const K& value) {
-        std::shared_lock lock(mutex_);
-        return _set.contains(value);
-    }
-
-public:
-
-    /***************************************************************
-     *  @brief  Check that new number from client is unique
-     *  @param  value Received random number from client
-     *  @return Average of numbers squares summ
-     */
-    const K& GetAverage(const K&& value) noexcept {
-
-        /* New random value is already in container
-         * We don't need to calculate new average of numbers' squares */
-        if (IsContain(value)) {
-            return static_cast<const K&>(squaresSumm / _set.size());
-        }
-        /* New random value is unique
-         * We need to calculate it */
-        else {
-            Set(value);
-            squaresSumm += (value * value);
-            return static_cast<const K&>(squaresSumm / _set.size());
-        }
-    }
-
-    /* return dump of set data */
-    const std::string& Dump() const noexcept {
-        std::stringstream ss;
-
-        std::shared_lock lock(mutex_);
-        for (auto& v : _set) {
-            ss << v << "\n";
-        }
-
-        return ss.str();
-    }
-};
-
-GuardedSet<uint64_t> _gset;
-
 /***********************************************************************************
 *  @brief  Getter for tcp connection socket reference
 *  @return Reference to tcp connection socket
 */
 AsyncTcpConnection::ssl_socket::lowest_layer_type& AsyncTcpConnection::socket() {
-
     return socket_.lowest_layer();
 }
 
@@ -115,6 +53,9 @@ void AsyncTcpConnection::StartAuth() {
  *  @return None
  */
 void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error) {
+
+    std::cout << buf.data() << std::endl;
+
     if (!error)
     {
         socket_.async_read_some(boost::asio::buffer(buf),

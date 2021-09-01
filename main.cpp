@@ -23,8 +23,8 @@
 
 #include <spdlog/spdlog.h>
 
-/* Build v.0.0.16 from 19.08.2021 */
-const uint32_t PATCH = 16;
+/* Build v.0.0.17 from 01.09.2021 */
+const uint32_t PATCH = 17;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -45,7 +45,7 @@ int main()
     try
     {
         /* conctruct db class */
-        std::unique_ptr<PostgresProcessor> db = std::make_unique<PostgresProcessor>();
+        //std::unique_ptr db = std::make_unique<PostgresProcessor>();
 
         /* separate thread to start tcp server */
         boost::asio::io_service ios;

@@ -4,13 +4,19 @@
  */
 #pragma once
 
+ /* local C++ headers */
+#include "ConnectionManager.h"
+
+/* std C++ lib headers */
 #include <shared_mutex>
 #include <queue>
 
 class MessageBroker {
+    friend class ConnectionManager;
+    using T = uint64_t;
 
 public:
-    using record_t = std::pair<const uint64_t, const std::string>;
+    using record_t = std::pair<T, const std::string>;
 
     /***********************************************************************************
      *  @brief  Push info about new message {msg} for user {connId} to queue
@@ -18,7 +24,7 @@ public:
      *  @param  msg Message itself
      *  @return None
      */
-    void PushMessage(const uint64_t& connId, const std::string&& msg) {
+    void PushMessage(const T& connId, const std::string&& msg) {
         std::unique_lock lk(m_);
         msgQueue.emplace(std::make_pair(connId, msg));
         msgNum++;
@@ -46,13 +52,11 @@ protected:
         msgNum--;
         return msg;
     }
-
 private:
-    friend class ConnectionManager;
+
     std::queue<record_t> msgQueue;
     std::shared_mutex m_;
     std::atomic_size_t msgNum;
-
 };
 
 extern MessageBroker msgBroker;

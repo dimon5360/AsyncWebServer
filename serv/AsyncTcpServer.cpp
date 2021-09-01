@@ -51,7 +51,6 @@ void AsyncTcpServer::HandleAccept(AsyncClient::client_ptr& client,
     {
         ConsoleLogger::Info("New connection accepted. Start reading data.\n");
         client->HandleAccept();
-        //connMan_.AddNewClient(client);
         StartAccept();
     }
     else {

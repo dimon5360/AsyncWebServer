@@ -11,8 +11,8 @@
 AsyncClient::client_ptr AsyncClient::CreateNewClient(boost::asio::io_service& io_service,
     boost::asio::ssl::context& context) {
 
-    uint64_t connId = connMan_.GetFreeId();
-    return std::make_shared<AsyncClient>(io_service, context, connId);
+    //uint64_t connId = connMan_.GetFreeId();
+    return std::make_shared<AsyncClient>(io_service, context, connMan_.GetFreeId());
 }
 
 void AsyncClient::HandleAccept() {

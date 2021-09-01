@@ -25,7 +25,7 @@ public:
         boost::asio::ssl::context& context);
 
     AsyncClient(boost::asio::io_service& io_service,
-        boost::asio::ssl::context& context, const uint64_t connId)
+        boost::asio::ssl::context& context, const uint64_t& connId)
         : id_(connId)
     {
         conn = AsyncTcpConnection::create(io_service, context, id_);

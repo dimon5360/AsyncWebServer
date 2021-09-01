@@ -46,7 +46,7 @@ public:
      *  @return Reference to tcp connection object
      */
     static connection_ptr create(boost::asio::io_service& io_service,
-        boost::asio::ssl::context& context, uint64_t id)
+        boost::asio::ssl::context& context, const uint64_t& id)
     {
         return std::make_shared<AsyncTcpConnection>(io_service, context, id);
     }
@@ -76,7 +76,7 @@ public:
     AsyncTcpConnection&& operator=(const AsyncTcpConnection&&) = delete;
 
     AsyncTcpConnection(boost::asio::io_service& io_service,
-        boost::asio::ssl::context& context_, uint64_t id)
+        boost::asio::ssl::context& context_, const uint64_t& id)
         : socket_(io_service, context_),
         id_(id)
     {

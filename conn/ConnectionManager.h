@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <shared_mutex>
+#include <random>
 
 /* boost C++ lib headers */
 #include <boost/bind/placeholders.hpp>
@@ -22,30 +23,76 @@
 
 class ConnectionManager {
 
-public:
+private:
 
-    using id_t = uint64_t;
+    using T = uint64_t;
+
+    template<class type>
+    class CustomRandomGen {
+    private:
+        /* random number generator object */
+        std::random_device r;
+        std::mt19937 e1;
+        std::uniform_int_distribution<type> uniform_dist;
+
+    public:
+
+        CustomRandomGen(type&& min, type&& max) :
+            e1(r()),
+            uniform_dist(min, max)
+        {
+            std::cout << "Construct new random numbers generator class\n";
+        }
+
+        /* destructor */
+        ~CustomRandomGen() {
+            std::cout << "Destruct random generator class\n";
+        }
+
+        /* getter for new random number to send in server */
+        type GenRandomNumber() noexcept {
+            return static_cast<type>(uniform_dist(e1));
+        }
+    };
+
+    std::unique_ptr<CustomRandomGen<uint32_t>> randEngine;
 
  private:
+
     /* hash map to keep clients connection pointers */
-    std::unordered_map<id_t, AsyncTcpConnection::connection_ptr> clientsMap_;
+    std::unordered_map<T, AsyncTcpConnection::connection_ptr> clientsMap_;
+    /* queue to keep vacated IDs, default queue is empty */
+    std::priority_queue<T> vacatedIds_;
     /* mutex object to avoid data race */
     mutable std::shared_mutex mutex_;
 
-    const id_t DEFAULT_ID = 10;
-    std::atomic_size_t connId = DEFAULT_ID;
-    const long long default_delay = 5;
+    const T INVALID_ID = 100;
+    const uint32_t default_delay = 5;
 
 public:
 
-    id_t GetFreeId() {
+    ConnectionManager() {
+        std::cout << "Construct connection manager\n";
+        randEngine = std::make_unique<CustomRandomGen<uint32_t>>(1, UINT64_MAX);
+    }
+
+    ~ConnectionManager() {
+        std::cout << "Destruct connection manager\n";
+    }
+
+    const T GetFreeId() noexcept {
         std::shared_lock lk(mutex_);
+        T connId = randEngine->GenRandomNumber();
 
-        /* if currIdConn is overloaded and there are free ids */
-        while (clientsMap_.contains(connId) || connId < DEFAULT_ID) {
-            connId++;
+        if (!vacatedIds_.empty()) {
+            connId = vacatedIds_.top();
+            vacatedIds_.pop();
+        } else {
+            /* if currIdConn is overloaded and there are free ids */
+            while (clientsMap_.contains(connId)) {
+                connId = randEngine->GenRandomNumber();
+            }
         }
-
         return connId;
     }
 
@@ -58,21 +105,13 @@ public:
         handle(); 
     }
 
-    ConnectionManager() {
-        std::cout << "Construct connection manager\n"; 
-    }
-
-    ~ConnectionManager() {
-        std::cout << "Destruct connection manager\n";
-    }
-
     /***********************************************************************************
      *  @brief  Func to add new connection tcp object to map
      *  @param  id New client id
      *  @param  connPtr Reference to async tcp connection class
      *  @return None
      */
-    void CreateNewConnection(const id_t& connId, AsyncTcpConnection::connection_ptr connPtr)
+    void CreateNewConnection(const T& connId, AsyncTcpConnection::connection_ptr connPtr)
     {
         std::unique_lock lk(mutex_);
         clientsMap_.insert({ connId, connPtr });
@@ -83,9 +122,10 @@ public:
      *  @param  connId Client id to remove connection
      *  @return None
      */
-    void RemoveConnection(id_t connId)
+    void RemoveConnection(const T& connId)
     {
         std::unique_lock lk(mutex_);
+        vacatedIds_.push(connId);
         clientsMap_.erase(connId);
     }
 
@@ -94,7 +134,7 @@ public:
      *  @param  connId Client id to remove connection
      *  @return None
      */
-    bool Contains(const id_t& connId)
+    bool Contains(const T& connId)
     {
         std::shared_lock lk(mutex_);
         return clientsMap_.contains(connId);
@@ -122,7 +162,7 @@ private:
      *  @param  msg Message string which must be sended
      *  @return None
      */
-    void ResendUserMessage(const id_t& conn_user_id, const std::string& user_msg) const {
+    void ResendUserMessage(const T& conn_user_id, const std::string& user_msg) const {
         std::unique_lock lk(mutex_);
         if (clientsMap_.contains(conn_user_id)) {
             clientsMap_.at(conn_user_id)->StartWriteMessage(user_msg);
