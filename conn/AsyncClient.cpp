@@ -7,20 +7,18 @@
 #include "AsyncClient.h"
 #include "ConnectionManager.h"
 
-
 AsyncClient::client_ptr AsyncClient::CreateNewClient(boost::asio::io_service& io_service,
-    boost::asio::ssl::context& context) {
-
-    //uint64_t connId = connMan_.GetFreeId();
+    boost::asio::ssl::context& context) 
+{
     return std::make_shared<AsyncClient>(io_service, context, connMan_.GetFreeId());
 }
 
-void AsyncClient::HandleAccept() {
+void AsyncClient::HandleAccept() const noexcept {
     conn->StartAuth();
     connMan_.CreateNewConnection(id_, conn);
 }
 
-void AsyncClient::DisconnectClient() {
+void AsyncClient::DisconnectClient() const noexcept  {
     conn->socket().close();
 }
 

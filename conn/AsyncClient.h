@@ -17,7 +17,7 @@ public:
      *  @brief  Getter for tcp connection socket reference
      *  @return Reference to tcp connection socket
      */
-    decltype(auto) socket() {
+    decltype(auto) socket() const noexcept {
         return conn->socket();
     }
 
@@ -36,9 +36,9 @@ public:
         std::cout << "Destruct existed client\n";
     }
 
-    void HandleAccept();
+    void HandleAccept() const noexcept;
 
-    void DisconnectClient();
+    void DisconnectClient() const noexcept;
 
     const uint64_t GetClientId() const noexcept;
 

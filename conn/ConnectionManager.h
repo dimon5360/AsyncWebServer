@@ -66,7 +66,7 @@ private:
     /* mutex object to avoid data race */
     mutable std::shared_mutex mutex_;
 
-    const T INVALID_ID = 100;
+    const T INVALID_ID = 0;
     const uint32_t default_delay = 5;
 
 public:
@@ -82,12 +82,13 @@ public:
 
     const T GetFreeId() noexcept {
         std::shared_lock lk(mutex_);
-        T connId = randEngine->GenRandomNumber();
+        T connId = INVALID_ID;
 
         if (!vacatedIds_.empty()) {
             connId = vacatedIds_.top();
             vacatedIds_.pop();
         } else {
+            connId = randEngine->GenRandomNumber();
             /* if currIdConn is overloaded and there are free ids */
             while (clientsMap_.contains(connId)) {
                 connId = randEngine->GenRandomNumber();

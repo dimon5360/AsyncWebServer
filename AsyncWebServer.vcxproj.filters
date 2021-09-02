@@ -48,6 +48,9 @@
     <ClCompile Include="utils\json.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="data\DataProcess.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="serv\AsyncTcpServer.h">
@@ -84,6 +87,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="utils\json.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="data\DataProcess.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

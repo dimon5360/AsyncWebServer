@@ -210,7 +210,7 @@ void AsyncTcpConnection::StartWriteMessage(const std::string& msg)
  *  @param  value Average of squares summ from set (container)
  *  @return None
  */
-void AsyncTcpConnection::StartWrite(uint64_t value)
+void AsyncTcpConnection::StartWrite(uint64_t& value)
 {
     std::string resp{ boost::str(boost::format("%1%%2%,%3%%4%")
         % tech_msg_header % id_ % tech_resp_msg % value) };

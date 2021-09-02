@@ -25,7 +25,7 @@ public:
         MIN(min),
         MAX(max)
     {
-        std::cout << "Construct new random numbers generator class\n";
+        std::cout << "Construct random generator class\n";
     }
 
     /* destructor */

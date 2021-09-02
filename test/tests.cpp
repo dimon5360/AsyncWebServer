@@ -59,7 +59,6 @@ unittest_code_t init_unit_tests() {
 
     unittest_code_t ret = UnitestCode::unittest_ok;
     tests_start(Testcase::test_JsonParser);
-
     return ret;
 }
 
@@ -145,7 +144,6 @@ task resuming_on_new_thread(std::jthread& out) {
     std::cout << "Coroutine resumed on thread: " << std::this_thread::get_id() << '\n';
 }
 #endif /* USE_JTHREAD */
-
 
 #if TEST_COROUTINES
 
@@ -368,7 +366,9 @@ static void test_coroutines() {
 
 static void test_parse_json() {
     std::unique_ptr jsonParser = std::make_unique<JsonParser>();
-    jsonParser->handle();
+    jsonParser->HandleRequest("{ \"usermail\" : \"test@test.com\", \
+        \"username\" : \"test\", \"password\" : \"testPASS2#$\", \"active\" : true }\r\n",
+        JsonParser::json_req_t::authentication_request);
 }
 #endif /* TEST_PARSE_JSON */
 

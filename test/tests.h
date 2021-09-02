@@ -8,7 +8,7 @@
 
 #pragma once
 
-#define UNIT_TEST false//true
+#define UNIT_TEST true
 
 #if UNIT_TEST     
 

@@ -4,8 +4,8 @@
  *
  *  @author     Kalmykov Dmitry
  *  @date       19.08.2021
- *  @modified   19.08.2021
- *  @version    0.1
+ *  @modified   03.09.2021
+ *  @version    0.2
  */
 
  /* local C++ headers */
@@ -49,27 +49,68 @@
 #include <fstream>
 #include <iostream>
 
-void JsonParser::handle() noexcept {
+//std::string sTempJson = "{ \"usermail\" : \"test@test.com\", \"username\" : \"test\", \"password\" : \"testPASS2#$\", \"active\" : true }\r\n";
 
-    namespace pt = boost::property_tree;
-    const std::string sTempJson = "{ \"usermail\" : \"test@test.com\", \"username\" : \"test\", \"password\" : \"testPASS2#$\" }\r\n";
-    try
-    {
-
-        pt::ptree tree;
-        std::stringstream req{ sTempJson };
-        
-        pt::read_json(req, tree);
-    
-        PrintTree(tree);
-    }
-    catch (const std::exception& ex)
-    {
-        ConsoleLogger::Error(boost::str(boost::format("JSON parse exception : %1%\n") % ex.what()));
-    }
-
+void JsonParser::PushRequest(std::string&& inReq) const noexcept {
+    std::unique_lock lk(mtx_);
+    msgQueue.push(std::move(inReq));
 }
 
+std::string JsonParser::PullRequest() const noexcept {
+    std::unique_lock lk(mtx_);
+    std::string outMsg{ "" };
+    if (!msgQueue.empty()) {
+        outMsg = msgQueue.front();
+        msgQueue.pop();
+    }
+    return outMsg;
+}
+
+
+void JsonParser::HandleAuthJson(std::string&& authJson) noexcept {
+
+    namespace pt = boost::property_tree;
+
+    pt::ptree tree = ConstructTree(std::move(authJson));
+    auto usermail = ParseTreeParam<std::string>(tree, "usermail");
+    ConsoleLogger::Debug(boost::str(boost::format("%1%") % usermail));
+    auto username = ParseTreeParam<std::string>(tree, "username");
+    ConsoleLogger::Debug(boost::str(boost::format("%1%") % username));
+    auto password = ParseTreeParam<std::string>(tree, "password");
+    ConsoleLogger::Debug(boost::str(boost::format("%1%") % password));
+
+    // TODO: send to postgres processor
+}
+
+void JsonParser::HandleRequest(std::string&& json, const json_req_t& type) noexcept {
+
+    try {
+        switch (type) {
+            case json_req_t::authentication_request:
+            {
+                HandleAuthJson(std::move(json));
+                break;
+            }
+            default: 
+            {
+                //throw std::string{boost::str(boost::format("Invalid request type %1%") % type)};
+                throw "Invalid request type " + std::to_string(static_cast<double>(type));
+            }
+
+        }
+    }
+    catch (std::exception& ex) {
+        ConsoleLogger::Error(std::string{ ex.what() });
+    }
+}
+
+boost::property_tree::ptree JsonParser::ConstructTree(std::string&& jsonString) {
+    namespace pt = boost::property_tree;
+    pt::ptree ptree;
+    std::stringstream req{ jsonString };
+    pt::read_json(req, ptree);
+    return ptree;
+}
 
 void JsonParser::PrintTree(boost::property_tree::ptree& tree) {
 
@@ -91,13 +132,17 @@ void JsonParser::PrintTree(boost::property_tree::ptree& tree) {
     }
 }
 
-
-
-
-JsonParser::JsonParser() {
-
+template<typename T>
+T JsonParser::ParseJsonParam(const std::string& jsonReq, std::string&& sparam) {
+    auto tree = ConstructTree(std::move(jsonReq));
+    auto param = tree.get<T>(std::move(sparam));
+    return param;
 }
 
-JsonParser::~JsonParser() {
-
+template<typename T>
+T JsonParser::ParseTreeParam(const boost::property_tree::ptree& jsonTree, std::string&& sparam) {
+    auto param = jsonTree.get<T>(std::move(sparam));
+    return param;
 }
+
+

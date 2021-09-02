@@ -152,10 +152,10 @@ private:
 
     /***********************************************************************************
     *  @brief  Start async writing process from socket
-    *  @param  value Average of squares summ from set (container)
+    *  @param  value Average of squares summ from set (container) TODO: fix description
     *  @return None
     */
-    void StartWrite(uint64_t value);
+    void StartWrite(uint64_t& value);
 
     /***********************************************************************************
     *  @brief  Callback-handler of async writing process
