@@ -8,6 +8,7 @@
 #include "AsyncTcpConnection.h"
 
 class AsyncClient {
+    using T = uint64_t;
 public:
 
     /* alias for shared pointer to tcp client class */
@@ -25,7 +26,7 @@ public:
         boost::asio::ssl::context& context);
 
     AsyncClient(boost::asio::io_service& io_service,
-        boost::asio::ssl::context& context, const uint64_t& connId)
+        boost::asio::ssl::context& context, const T& connId)
         : id_(connId)
     {
         conn = AsyncTcpConnection::create(io_service, context, id_);
@@ -40,10 +41,10 @@ public:
 
     void DisconnectClient() const noexcept;
 
-    const uint64_t GetClientId() const noexcept;
+    const T GetClientId() const noexcept;
 
 private:
 
     AsyncTcpConnection::connection_ptr conn;
-    uint64_t id_;
+    T id_;
 };

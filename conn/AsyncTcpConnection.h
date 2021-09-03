@@ -34,6 +34,9 @@
 class AsyncTcpConnection
 {
 public:
+
+    using id_t = uint32_t;
+
     /* alias for ssl stream to tcp socket */
     using ssl_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
     /* alias for shared pointer to tcp connectio class */
@@ -46,7 +49,7 @@ public:
      *  @return Reference to tcp connection object
      */
     static connection_ptr create(boost::asio::io_service& io_service,
-        boost::asio::ssl::context& context, const uint64_t& id)
+        boost::asio::ssl::context& context, const id_t& id)
     {
         return std::make_shared<AsyncTcpConnection>(io_service, context, id);
     }
@@ -65,7 +68,7 @@ public:
     void StartAuth();
 
 
-    const uint64_t GetId() const noexcept {
+    const id_t GetId() const noexcept {
         return id_;
     }
 
@@ -76,7 +79,7 @@ public:
     AsyncTcpConnection&& operator=(const AsyncTcpConnection&&) = delete;
 
     AsyncTcpConnection(boost::asio::io_service& io_service,
-        boost::asio::ssl::context& context_, const uint64_t& id)
+        boost::asio::ssl::context& context_, const id_t& id)
         : socket_(io_service, context_),
         id_(id)
     {
@@ -155,7 +158,7 @@ private:
     *  @param  value Average of squares summ from set (container) TODO: fix description
     *  @return None
     */
-    void StartWrite(uint64_t& value);
+    void StartWrite(const id_t& value);
 
     /***********************************************************************************
     *  @brief  Callback-handler of async writing process
@@ -176,7 +179,7 @@ private:
     const std::string tech_resp_msg{ "summ=" };
 
     /* unique id of client */
-    uint64_t id_;
+    id_t id_;
 
     /* exchange data buffer */
     enum { max_length = 1024 };

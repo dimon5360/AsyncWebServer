@@ -9,6 +9,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <random>
+#include <limits>
 
 /* boost C++ lib headers */
 #include <boost/bind/placeholders.hpp>
@@ -25,19 +26,18 @@ class ConnectionManager {
 
 private:
 
-    using T = uint64_t;
+    using T = AsyncTcpConnection::id_t;
 
-    template<class type>
     class CustomRandomGen {
     private:
         /* random number generator object */
         std::random_device r;
         std::mt19937 e1;
-        std::uniform_int_distribution<type> uniform_dist;
+        std::uniform_int_distribution<T> uniform_dist;
 
     public:
 
-        CustomRandomGen(type&& min, type&& max) :
+        CustomRandomGen(const T&& min, const T&& max) :
             e1(r()),
             uniform_dist(min, max)
         {
@@ -50,12 +50,12 @@ private:
         }
 
         /* getter for new random number to send in server */
-        type GenRandomNumber() noexcept {
-            return static_cast<type>(uniform_dist(e1));
+        T GenRandomNumber() noexcept {
+            return static_cast<T>(uniform_dist(e1));
         }
     };
 
-    std::unique_ptr<CustomRandomGen<uint32_t>> randEngine;
+    std::unique_ptr<CustomRandomGen> randEngine;
 
  private:
 
@@ -73,7 +73,7 @@ public:
 
     ConnectionManager() {
         std::cout << "Construct connection manager\n";
-        randEngine = std::make_unique<CustomRandomGen<uint32_t>>(1, UINT64_MAX);
+        randEngine = std::make_unique<CustomRandomGen>(1, std::move(std::numeric_limits<T>::max()));
     }
 
     ~ConnectionManager() {

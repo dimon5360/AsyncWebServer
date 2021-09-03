@@ -22,6 +22,6 @@ void AsyncClient::DisconnectClient() const noexcept  {
     conn->socket().close();
 }
 
-const uint64_t AsyncClient::GetClientId() const noexcept  {
+const AsyncClient::T AsyncClient::GetClientId() const noexcept  {
     return id_;
 }

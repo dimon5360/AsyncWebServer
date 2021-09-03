@@ -116,8 +116,6 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
             std::string resp{ boost::str(boost::format("%1%%2%") % hello_msg % id_) };
             ConsoleLogger::Info(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
 
-
-
             socket_.async_write_some(boost::asio::buffer(resp),
                 [&](const boost::system::error_code& error,
                     std::size_t bytes_transferred) {
@@ -170,16 +168,19 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
         if (in_msg.starts_with(tech_msg_header)) {
             auto item = in_msg.find(tech_req_msg);
 
-            auto srcUserId = boost::lexical_cast<uint64_t>(in_msg.substr(tech_msg_header.size(), in_msg.find(":") - tech_msg_header.size()));
+            try {
 
-            auto offs = in_msg.find(":");
-            auto ss = in_msg.find(",") - in_msg.find(":");
-            std::cout << offs << " " << ss << std::endl;
-            auto dstUserId = boost::lexical_cast<uint64_t>(in_msg.substr(offs + 1, ss - 1));
+                auto idSize = in_msg.find(",") - tech_msg_header.size();
+                auto dstUserId = boost::lexical_cast<id_t>(in_msg.substr(tech_msg_header.size(), idSize));
+                auto msg = in_msg.substr(item + tech_req_msg.size(), in_msg.size());
 
-            std::cout << "Message from user #" << srcUserId << " for user #" << dstUserId << std::endl;
+                //std::cout << "Message from user #" << srcUserId << " for user #" << dstUserId << std::endl;
 
-            msgBroker.PushMessage(dstUserId, std::move(in_msg));
+                msgBroker.PushMessage(dstUserId, std::move(in_msg));
+            }
+            catch (std::exception& ex) {
+                ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FILE__ % ex.what()));
+            }
             StartRead();
         }
     }
@@ -210,7 +211,7 @@ void AsyncTcpConnection::StartWriteMessage(const std::string& msg)
  *  @param  value Average of squares summ from set (container)
  *  @return None
  */
-void AsyncTcpConnection::StartWrite(uint64_t& value)
+void AsyncTcpConnection::StartWrite(const id_t& value)
 {
     std::string resp{ boost::str(boost::format("%1%%2%,%3%%4%")
         % tech_msg_header % id_ % tech_resp_msg % value) };

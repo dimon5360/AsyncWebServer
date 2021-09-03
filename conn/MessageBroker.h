@@ -13,7 +13,7 @@
 
 class MessageBroker {
     friend class ConnectionManager;
-    using T = uint64_t;
+    using T = AsyncTcpConnection::id_t;
 
 public:
     using record_t = std::pair<T, const std::string>;
