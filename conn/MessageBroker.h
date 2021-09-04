@@ -52,6 +52,7 @@ protected:
         msgNum--;
         return msg;
     }
+
 private:
 
     std::queue<record_t> msgQueue;

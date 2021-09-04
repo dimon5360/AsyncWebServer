@@ -170,11 +170,11 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 
             try {
 
+                // TODO: here DataProcesor calls and then start to read again
+
                 auto idSize = in_msg.find(",") - tech_msg_header.size();
                 auto dstUserId = boost::lexical_cast<id_t>(in_msg.substr(tech_msg_header.size(), idSize));
                 auto msg = in_msg.substr(item + tech_req_msg.size(), in_msg.size());
-
-                //std::cout << "Message from user #" << srcUserId << " for user #" << dstUserId << std::endl;
 
                 msgBroker.PushMessage(dstUserId, std::move(in_msg));
             }
