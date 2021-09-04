@@ -12,7 +12,7 @@
 #include <queue>
 
 class MessageBroker {
-    friend class ConnectionManager;
+    friend class DataProcess;
     using T = AsyncTcpConnection::id_t;
 
 public:

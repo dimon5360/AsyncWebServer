@@ -24,8 +24,11 @@
 #include "AsyncTcpConnection.h"
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
+#include "../data/DataProcess.h"
 
+#if !defined(DATA_PROCESS)
 MessageBroker msgBroker;
+#endif /* !defined(DATA_PROCESS) */
 
 /***********************************************************************************
 *  @brief  Getter for tcp connection socket reference
@@ -172,11 +175,15 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 
                 // TODO: here DataProcesor calls and then start to read again
 
+#if !defined(DATA_PROCESS)
                 auto idSize = in_msg.find(",") - tech_msg_header.size();
                 auto dstUserId = boost::lexical_cast<id_t>(in_msg.substr(tech_msg_header.size(), idSize));
                 auto msg = in_msg.substr(item + tech_req_msg.size(), in_msg.size());
 
                 msgBroker.PushMessage(dstUserId, std::move(in_msg));
+#else 
+                dataProcessor.PushNewMessage(std::move(in_msg));
+#endif /* !defined(DATA_PROCESS) */
             }
             catch (std::exception& ex) {
                 ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FILE__ % ex.what()));

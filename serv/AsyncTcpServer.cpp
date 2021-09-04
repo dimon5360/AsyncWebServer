@@ -28,13 +28,7 @@
 #include "AsyncTcpServer.h"
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
-//#include "../conn/AsyncClient.h"
-
-#if USE_CLIENT_CLASS
 #include "../conn/AsyncClient.h"
-#else
-#include "../conn/AsyncTcpConnection.h"
-#endif /* USE_CLIENT_CLASS */
 
 ConnectionManager connMan_;
 
@@ -112,8 +106,10 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
     try {
         /* open db config file */
         scfg.Open("server.ini");
-        uint16_t port = boost::lexical_cast<uint16_t>(scfg.GetRecordByKey("port"));
+        uint16_t port = 4059;// boost::lexical_cast<uint16_t>(scfg.GetRecordByKey("port"));
+#if !defined(DATA_PROCESS)
         connMan_();
+#endif /* !defined(DATA_PROCESS) */
         std::make_unique<AsyncTcpServer>(std::move(ios), port);
     }
     catch (std::exception& ex) {

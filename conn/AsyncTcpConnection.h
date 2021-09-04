@@ -29,7 +29,6 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/write.hpp>
 
-#define CHAT 1
 
 class AsyncTcpConnection
 {
@@ -90,7 +89,6 @@ public:
         std::cout << "AsyncTcpConnection destructor for user ID = " << id_ << "\n";
     }
 
-#if CHAT
     /***********************************************************************************
      *  @brief  Public function to initiate retransmit message to another user
      *  @note   Function has no callback
@@ -98,7 +96,6 @@ public:
      *  @return None
      */
     void StartWriteMessage(const std::string& msg);
-#endif /* CHAT */
 
 private:
 

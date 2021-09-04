@@ -10,6 +10,7 @@
 #include <shared_mutex>
 #include <random>
 #include <limits>
+#include <queue>
 
 /* boost C++ lib headers */
 #include <boost/bind/placeholders.hpp>
@@ -19,10 +20,13 @@
 #include "AsyncTcpConnection.h"
 #include "AsyncClient.h"
 #include "MessageBroker.h"
+#include "../log/Logger.h"
 
-#define USE_CLIENT_CLASS 1
+#define DATA_PROCESS
 
 class ConnectionManager {
+
+    friend class DataProcess;
 
 private:
 
@@ -67,7 +71,9 @@ private:
     mutable std::shared_mutex mutex_;
 
     const T INVALID_ID = 0;
+#if !defined(DATA_PROCESS)
     const uint32_t default_delay = 5;
+#endif /* !defined(DATA_PROCESS) */
 
 public:
 
@@ -81,18 +87,23 @@ public:
     }
 
     const T GetFreeId() noexcept {
-        std::shared_lock lk(mutex_);
         T connId = INVALID_ID;
 
-        if (!vacatedIds_.empty()) {
-            connId = vacatedIds_.top();
-            vacatedIds_.pop();
-        } else {
-            connId = randEngine->GenRandomNumber();
-            /* if currIdConn is overloaded and there are free ids */
-            while (clientsMap_.contains(connId)) {
+        try {
+            std::unique_lock lk(mutex_);
+            if (!vacatedIds_.empty()) {
+                connId = vacatedIds_.top();
+                vacatedIds_.pop();
+            } else {
                 connId = randEngine->GenRandomNumber();
+                /* if currIdConn is overloaded and there are free ids */
+                while (clientsMap_.contains(connId)) {
+                    connId = randEngine->GenRandomNumber();
+                }
             }
+        }
+        catch (std::exception& ex) {
+            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
         }
         return connId;
     }
@@ -102,9 +113,11 @@ public:
      *  @param  None
      *  @return None
      */
-    void operator()(void) { 
+#if !defined(DATA_PROCESS)
+    void operator()() {
         handle(); 
     }
+#endif /* !defined(DATA_PROCESS) */
 
     /***********************************************************************************
      *  @brief  Func to add new connection tcp object to map
@@ -125,9 +138,14 @@ public:
      */
     void RemoveConnection(const T& connId)
     {
-        std::unique_lock lk(mutex_);
-        vacatedIds_.push(connId);
-        clientsMap_.erase(connId);
+        try {
+            std::unique_lock lk(mutex_);
+            vacatedIds_.push(connId);
+            clientsMap_.erase(connId);
+        }
+        catch (std::exception& ex) {
+            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
+        }
     }
 
     /***********************************************************************************
@@ -137,7 +155,7 @@ public:
      */
     bool Contains(const T& connId)
     {
-        std::shared_lock lk(mutex_);
+        //std::shared_lock lk(mutex_);
         return clientsMap_.contains(connId);
     }
 
@@ -155,7 +173,7 @@ public:
         }
     }
 
-private:
+protected:
 
     /***********************************************************************************
      *  @brief  Public function to initiate retransmit message to another user
@@ -164,13 +182,18 @@ private:
      *  @return None
      */
     void ResendUserMessage(const T& conn_user_id, const std::string& user_msg) const {
-        std::unique_lock lk(mutex_);
-        if (clientsMap_.contains(conn_user_id)) {
-            clientsMap_.at(conn_user_id)->StartWriteMessage(user_msg);
-            std::cout << "Message for user #" << conn_user_id << " sended\n";
+        try {
+            std::unique_lock lk(mutex_);
+            if (clientsMap_.contains(conn_user_id)) {
+                clientsMap_.at(conn_user_id)->StartWriteMessage(user_msg);
+                std::cout << "Message for user #" << conn_user_id << " sended\n";
+            }
+            else {
+                std::cout << "User #" << conn_user_id << " not found\n";
+            }
         }
-        else {
-            std::cout << "User #" << conn_user_id << " not found\n";
+        catch (std::exception& ex) {
+            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
         }
     }
 
@@ -180,17 +203,19 @@ private:
      *  @param  msg Message string which must be sended
      *  @return None
      */
-    void handle() { // TODO: remake, dummy
-        std::thread{ [&]() {
-            while (true) {
-                if (!msgBroker.IsQueueEmpty()) {
-                    auto rec = msgBroker.PullMessage();
-                    ResendUserMessage(rec.first, rec.second);
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(default_delay));
-            }}
-        }.detach();
-    }
+#if !defined(DATA_PROCESS)
+     void handle() { // TODO: remake, dummy
+         std::thread{ [&]() {
+             while (true) {
+                 if (!msgBroker.IsQueueEmpty()) {
+                     auto rec = msgBroker.PullMessage();
+                     ResendUserMessage(rec.first, rec.second);
+                 }
+                 std::this_thread::sleep_for(std::chrono::milliseconds(default_delay));
+             }}
+         }.detach();
+     }
+#endif /* !defined(DATA_PROCESS) */
 };
 
 extern ConnectionManager connMan_;
