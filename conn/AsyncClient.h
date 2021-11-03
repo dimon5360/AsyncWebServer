@@ -22,27 +22,22 @@ public:
         return conn->socket();
     }
 
-    static client_ptr CreateNewClient(boost::asio::io_service& io_service,
-        boost::asio::ssl::context& context);
-
     AsyncClient(boost::asio::io_service& io_service,
         boost::asio::ssl::context& context, const T& connId)
         : id_(connId)
     {
-        conn = AsyncTcpConnection::create(io_service, context, id_);
         std::cout << "New client constructor\n";
+        conn = AsyncTcpConnection::create(io_service, context, id_);
     }
 
     ~AsyncClient() {
-        std::cout << "Destruct existed client\n";
+        std::cout << "Destruct existed client #" << id_ << std::endl;
     }
 
     void HandleAccept() const noexcept;
-
     void DisconnectClient() const noexcept;
-
     const T GetClientId() const noexcept;
-
+    void ResendMessage(const std::string & msg) const noexcept;
 private:
 
     AsyncTcpConnection::connection_ptr conn;

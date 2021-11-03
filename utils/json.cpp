@@ -17,6 +17,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/format.hpp>
+#include <boost/iostreams/stream.hpp>
 
 /* spdlog C++ lib */
 #include <spdlog/spdlog.h>
@@ -107,8 +108,9 @@ void JsonParser::HandleRequest(std::string&& json, const json_req_t& type) noexc
 boost::property_tree::ptree JsonParser::ConstructTree(std::string&& jsonString) {
     namespace pt = boost::property_tree;
     pt::ptree ptree;
-    std::stringstream req{ jsonString };
-    pt::read_json(req, ptree);
+    boost::iostreams::array_source as(jsonString.data(), jsonString.size());
+    boost::iostreams::stream<boost::iostreams::array_source> is(as);
+    pt::read_json(is, ptree);
     return ptree;
 }
 

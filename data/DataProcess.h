@@ -29,24 +29,14 @@
 class DataProcess {   
 
 public:
-    using data_process_t = std::unique_ptr<DataProcess>;
 
     void StartDataProcessor();
-    // push new message from async connection class in queue to process
     void PushNewMessage(std::string&& msg) const noexcept;
-    // process new message to define destiny user ID or session ID
     void ProcessNewMessage() const noexcept;
-    // put message for defined user in connection manager class to resend
     void SendLastMessage() const noexcept;
-
-    void Handle2() const noexcept;
-    void Handle1() const noexcept;
+    void HandleInOutMessages() const noexcept;
     
-    DataProcess()/* :
-        th_(std::thread{ [&]() {
-            Handle1();
-        }}),
-        task(&DataProcess::Handle2)*/
+    DataProcess()
     {
         std::cout << "Construct Data processor class\n";
         msgBroker = std::make_unique<MessageBroker>();
@@ -55,21 +45,22 @@ public:
 
     ~DataProcess() {
         std::cout << "Destruct Data processor class\n";
-        th_.detach();
     }
 
 private:
 
-    // pull new message from queue to process
     std::string PullNewMessage() const noexcept;
 
-    std::packaged_task<void()> task;
-    std::thread th_;
     const uint32_t delay = 10; // ms
     mutable std::unique_ptr<MessageBroker> msgBroker;
     mutable std::queue<std::string> ioq_; // in and out queue for messages
     mutable std::shared_mutex mutex_;
     mutable std::atomic_int16_t msgInQueue;
+
+    const std::string tech_msg_header{ "user id=" };
+    const std::string tech_pub_key_msg{ "key=" };
+    const std::string tech_req_msg{ "message=" };
+    const std::string tech_resp_msg{ "summ=" };
 };
 
 extern DataProcess dataProcessor;

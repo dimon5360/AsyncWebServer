@@ -58,15 +58,16 @@ void AsyncTcpServer::HandleAccept(AsyncClient::client_ptr& client,
  */
 void AsyncTcpServer::StartAccept() {
         
-    AsyncClient::client_ptr new_client = 
-        AsyncClient::CreateNewClient(io_service, context_);
+    /*AsyncClient::client_ptr new_client = 
+        AsyncClient::CreateNewClient(io_service, context_);*/
+    auto client = connMan_.CreateNewClient(io_service, context_);
 
     std::cout << "Current thread ID = " << std::this_thread::get_id();
     ConsoleLogger::Info(boost::str(boost::format("Current thread ID = %1% \n") %
         std::this_thread::get_id()));
 
-    acceptor_.async_accept(new_client->socket(),
-        std::bind(&AsyncTcpServer::HandleAccept, this, new_client,
+    acceptor_.async_accept(client->socket(),
+        std::bind(&AsyncTcpServer::HandleAccept, this, client,
             std::placeholders::_1));
 }
 
@@ -78,11 +79,9 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t po
     acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
     context_(boost::asio::ssl::context::tlsv13)
 {
-    ConsoleLogger::Info("AsyncTcpServer constructor\n");
+    ConsoleLogger::Info("AsyncTcpServer constructor");
 
-    std::cout << "AsyncTcpServer constructor\n";
-
-    ConsoleLogger::Info(boost::str(boost::format("Start listening to %1% port\n") % port));
+    ConsoleLogger::Info(boost::str(boost::format("Start listening to %1% port") % port));
 
     context_.set_options(boost::asio::ssl::context::default_workarounds |
         boost::asio::ssl::context::no_sslv2|
@@ -122,5 +121,6 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
  *  @return None
  */
 void AsyncTcpServer::StopTcpServer(boost::asio::io_service& ios) {
+    connMan_.DeactivateManager();
     connMan_.CloseAllConnections();
 }

@@ -18,22 +18,12 @@ class MessageBroker {
 public:
     using record_t = std::pair<T, const std::string>;
 
-    /***********************************************************************************
-     *  @brief  Push info about new message {msg} for user {connId} to queue
-     *  @param  connId  User ID who must receive message
-     *  @param  msg Message itself
-     *  @return None
-     */
     void PushMessage(const T& connId, const std::string&& msg) {
         std::unique_lock lk(m_);
         msgQueue.emplace(std::make_pair(connId, msg));
         msgNum++;
     }
 
-    /***********************************************************************************
-     *  @brief  Check queue is empty
-     *  @return Check result, true if queue is empty
-     */
     bool IsQueueEmpty() noexcept {
         std::shared_lock lk(m_);
         return msgNum == 0;
@@ -41,10 +31,6 @@ public:
 
 protected:
 
-    /***********************************************************************************
-     *  @brief  Pull fisrt message from queue
-     *  @return Message info
-     */
     const record_t PullMessage() {
         std::unique_lock lk(m_);
         record_t msg{ msgQueue.front() };

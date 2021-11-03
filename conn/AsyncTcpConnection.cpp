@@ -26,22 +26,10 @@
 #include "../conn/ConnectionManager.h"
 #include "../data/DataProcess.h"
 
-#if !defined(DATA_PROCESS)
-MessageBroker msgBroker;
-#endif /* !defined(DATA_PROCESS) */
-
-/***********************************************************************************
-*  @brief  Getter for tcp connection socket reference
-*  @return Reference to tcp connection socket
-*/
 AsyncTcpConnection::ssl_socket::lowest_layer_type& AsyncTcpConnection::socket() {
     return socket_.lowest_layer();
 }
 
-/***********************************************************************************
- *  @brief  Start process authentication of client
- *  @return None
- */
 void AsyncTcpConnection::StartAuth() {
 
     socket_.async_handshake(boost::asio::ssl::stream_base::server,
@@ -50,11 +38,6 @@ void AsyncTcpConnection::StartAuth() {
         });
 }
 
-/***********************************************************************************
- *  @brief  Callback-handler of async handshake process
- *  @param  error Boost system error object reference
- *  @return None
- */
 void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error) {
 
     std::cout << buf.data() << std::endl;
@@ -75,37 +58,6 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
     }
 }
 
-/***********************************************************************************
-*  @brief  Send shutdown request (close notify)
-*  @return None
-*/
-void AsyncTcpConnection::Shutdown() {
-    socket_.async_shutdown(
-        [&](const boost::system::error_code& error) {
-        Close(error);
-    });
-}
-
-/***********************************************************************************
- *  @brief  Close tcp connection and call destructor
- *  @param  error Boost system error object reference
- *  @return None
- */
-void AsyncTcpConnection::Close(const boost::system::error_code& error) {
-    if (connMan_.Contains(id_))
-    {
-        ConsoleLogger::Info(boost::str(boost::format("Close connection user: %1% \n") % id_));
-        socket_.next_layer().close();
-        connMan_.RemoveConnection(id_);
-    }
-}
-
-/***********************************************************************************
- *  @brief  Callback-handler of async authentication process
- *  @param  error Boost system error object reference
- *  @param  recvBytes Amount of bytes received from connection
- *  @return None
- */
 void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
     std::size_t recvBytes)
 {
@@ -122,7 +74,7 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
             socket_.async_write_some(boost::asio::buffer(resp),
                 [&](const boost::system::error_code& error,
                     std::size_t bytes_transferred) {
-                        HandleWrite(error);
+                        StartRead();
                 });
         }
         else {
@@ -138,11 +90,6 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
     }
 }
 
-/***********************************************************************************
- *  @brief  Start async reading process from socket
- *  @param  None
- *  @return None
- */
 void AsyncTcpConnection::StartRead()
 {
     socket_.async_read_some(boost::asio::buffer(buf),
@@ -152,12 +99,6 @@ void AsyncTcpConnection::StartRead()
         });
 }
 
-/***********************************************************************************
- *  @brief  Callback-handler of async reading process
- *  @param  error Boost system error object reference
- *  @param  recvBytes Amount of bytes received from connection
- *  @return None
- */
 void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
     std::size_t recvBytes)
 {
@@ -168,28 +109,13 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 
         to_lower(std::move(in_msg.data()));
 
-        if (in_msg.starts_with(tech_msg_header)) {
-            auto item = in_msg.find(tech_req_msg);
-
-            try {
-
-                // TODO: here DataProcesor calls and then start to read again
-
-#if !defined(DATA_PROCESS)
-                auto idSize = in_msg.find(",") - tech_msg_header.size();
-                auto dstUserId = boost::lexical_cast<id_t>(in_msg.substr(tech_msg_header.size(), idSize));
-                auto msg = in_msg.substr(item + tech_req_msg.size(), in_msg.size());
-
-                msgBroker.PushMessage(dstUserId, std::move(in_msg));
-#else 
-                dataProcessor.PushNewMessage(std::move(in_msg));
-#endif /* !defined(DATA_PROCESS) */
-            }
-            catch (std::exception& ex) {
-                ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FILE__ % ex.what()));
-            }
-            StartRead();
+        try {
+            dataProcessor.PushNewMessage(std::move(in_msg));
         }
+        catch (std::exception& ex) {
+            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FILE__ % ex.what()));
+        }
+        StartRead();
     }
     else {
         ConsoleLogger::Info(boost::str(boost::format(
@@ -198,12 +124,6 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
     }
 }
 
-/***********************************************************************************
- *  @brief  Public function to initiate retransmit message to another user
- *  @note   Function has no callback
- *  @param  msg Message string which must be sended
- *  @return None
- */
 void AsyncTcpConnection::StartWriteMessage(const std::string& msg)
 {
     socket_.async_write_some(boost::asio::buffer(msg),
@@ -213,38 +133,18 @@ void AsyncTcpConnection::StartWriteMessage(const std::string& msg)
         });
 }
 
-/***********************************************************************************
- *  @brief  Start async writing process from socket
- *  @param  value Average of squares summ from set (container)
- *  @return None
- */
-void AsyncTcpConnection::StartWrite(const id_t& value)
-{
-    std::string resp{ boost::str(boost::format("%1%%2%,%3%%4%")
-        % tech_msg_header % id_ % tech_resp_msg % value) };
-    ConsoleLogger::Info(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
-
-    socket_.async_write_some(boost::asio::buffer(resp),
-        [&](const boost::system::error_code& error,
-            std::size_t bytes_transferred) {
-                HandleWrite(error);
+void AsyncTcpConnection::Shutdown() {
+    socket_.async_shutdown(
+        [&](const boost::system::error_code& error) {
+            Close(error);
         });
 }
 
-/***********************************************************************************
- *  @brief  Callback-handler of async writing process
- *  @param  error Boost system error object reference
- *  @return None
- */
-void AsyncTcpConnection::HandleWrite(const boost::system::error_code& error)
-{
-    if (!error)
+void AsyncTcpConnection::Close(const boost::system::error_code& error) {
+    if (connMan_.Contains(id_))
     {
-        StartRead();
-    }
-    else {
-        ConsoleLogger::Info(boost::str(boost::format(
-            "HandleWrite error user: %1% \"%2%\"\n") % id_ % error.message()));
-        Shutdown();
+        ConsoleLogger::Info(boost::str(boost::format("Close connection user: %1% \n") % id_));
+        socket_.next_layer().close();
+        connMan_.RemoveConnection(id_);
     }
 }
