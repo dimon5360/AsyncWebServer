@@ -20,16 +20,17 @@ class JsonParser {
 public:
     using json_req_t = enum class req_t {
         authentication_request = 1,
+        user_message = 2,
     };
 
 private:
 
     void PrintTree(boost::property_tree::ptree& tree);
-    boost::property_tree::ptree ConstructTree(std::string&& jsonString);
 
     void HandleAuthJson(std::string&& authJson) noexcept;
 
 public:
+    boost::property_tree::ptree ConstructTree(std::string&& jsonString);
 
     void PushRequest(std::string&& inReq) const noexcept;
     std::string PullRequest() const noexcept;

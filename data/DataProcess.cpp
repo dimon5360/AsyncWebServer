@@ -19,13 +19,12 @@
 #include "../conn/ConnectionManager.h"
 #include "../conn/AsyncClient.h"
 
-
 #define USE_MSG_BROKER true
 
 void DataProcess::StartDataProcessor() {
     std::thread{ [&]() {
         HandleInOutMessages();
-    }}.join();
+    }}.detach();
 }
 
 void DataProcess::PushNewMessage(std::string&& msg) const noexcept {
@@ -52,24 +51,19 @@ void DataProcess::HandleInOutMessages() const noexcept {
     }
 }
 
+
 void DataProcess::ProcessNewMessage() const noexcept {
 
     try {
         std::string msg{ PullNewMessage() };
 
-        if (msg.starts_with(tech_msg_header)) {  // todo: further use the json parser 
-            MessageBroker::T id;
-            auto user_id_offset = msg.find(",") - tech_msg_header.size();
-            auto sId = msg.substr(tech_msg_header.size(), user_id_offset);
-            id = boost::lexical_cast<MessageBroker::T>(sId);
-            auto message_start_offset = msg.find(tech_req_msg) + tech_req_msg.size();
-            auto messageItself = msg.substr(message_start_offset, msg.size() - message_start_offset);
+        namespace pt = boost::property_tree;
+        pt::ptree tree = jsonParser->ConstructTree(std::move(msg));
 
-            msgBroker->PushMessage(id, std::move(messageItself));
-        }
-        else {
-            ConsoleLogger::Error("Undefined message header");
-        }
+        auto userId = jsonParser->ParseTreeParam<std::string>(tree, "user id");
+        auto userMsg = jsonParser->ParseTreeParam<std::string>(tree, "message");
+        auto id = boost::lexical_cast<MessageBroker::T>(userId);
+        msgBroker->PushMessage(id, std::move(userMsg));
     }
     catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));

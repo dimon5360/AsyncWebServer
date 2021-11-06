@@ -25,6 +25,7 @@
 
  /* local C++ headers */
 #include "../conn/MessageBroker.h"
+#include "../utils/json.h"
 
 class DataProcess {   
 
@@ -40,6 +41,7 @@ public:
     {
         std::cout << "Construct Data processor class\n";
         msgBroker = std::make_unique<MessageBroker>();
+        jsonParser = std::make_unique<JsonParser>();
         StartDataProcessor();
     }
 
@@ -56,6 +58,8 @@ private:
     mutable std::queue<std::string> ioq_; // in and out queue for messages
     mutable std::shared_mutex mutex_;
     mutable std::atomic_int16_t msgInQueue;
+
+    std::unique_ptr<JsonParser> jsonParser;
 
     const std::string tech_msg_header{ "user id=" };
     const std::string tech_pub_key_msg{ "key=" };

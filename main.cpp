@@ -23,8 +23,8 @@
 
 #include <spdlog/spdlog.h>
 
-/* Build v.0.0.20 from 03.11.2021 */
-const uint32_t PATCH = 20;
+/* Build v.0.0.21 from 06.11.2021 */
+const uint32_t PATCH = 21;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 

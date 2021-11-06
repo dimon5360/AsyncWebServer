@@ -92,12 +92,16 @@ void JsonParser::HandleRequest(std::string&& json, const json_req_t& type) noexc
                 HandleAuthJson(std::move(json));
                 break;
             }
+            case json_req_t::user_message:
+            {
+                HandleAuthJson(std::move(json));
+                break;
+            }
             default: 
             {
                 //throw std::string{boost::str(boost::format("Invalid request type %1%") % type)};
                 throw "Invalid request type " + std::to_string(static_cast<double>(type));
             }
-
         }
     }
     catch (std::exception& ex) {
