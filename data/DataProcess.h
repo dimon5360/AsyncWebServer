@@ -32,16 +32,15 @@ class DataProcess {
 public:
 
     void StartDataProcessor();
-    void PushNewMessage(std::string&& msg) const noexcept;
-    void ProcessNewMessage() const noexcept;
-    void SendLastMessage() const noexcept;
-    void HandleInOutMessages() const noexcept;
+    void PushNewMessage(std::string& msg) const noexcept;
+    std::string GetUsersListInJson(std::string& usersList, const size_t usersCount);
+    std::string ConstructMessage(const MessageBroker::T& id, std::string& message);
     
     DataProcess()
     {
         std::cout << "Construct Data processor class\n";
         msgBroker = std::make_unique<MessageBroker>();
-        jsonParser = std::make_unique<JsonParser>();
+        jsonHandler = std::make_unique<JsonHandler>();
         StartDataProcessor();
     }
 
@@ -51,6 +50,9 @@ public:
 
 private:
 
+    void SendLastMessage() const noexcept;
+    void ProcessNewMessage() const noexcept;
+    void HandleInOutMessages() const noexcept;
     std::string PullNewMessage() const noexcept;
 
     const uint32_t delay = 10; // ms
@@ -59,7 +61,7 @@ private:
     mutable std::shared_mutex mutex_;
     mutable std::atomic_int16_t msgInQueue;
 
-    std::unique_ptr<JsonParser> jsonParser;
+    std::unique_ptr<JsonHandler> jsonHandler;
 
     const std::string tech_msg_header{ "user id=" };
     const std::string tech_pub_key_msg{ "key=" };

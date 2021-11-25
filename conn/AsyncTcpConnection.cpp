@@ -74,6 +74,7 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
             socket_.async_write_some(boost::asio::buffer(resp),
                 [&](const boost::system::error_code& error,
                     std::size_t bytes_transferred) {
+                        connMan_.SendUsersListToEveryone();
                         StartRead();
                 });
         }
@@ -110,7 +111,7 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
         to_lower(std::move(in_msg.data()));
 
         try {
-            dataProcessor.PushNewMessage(std::move(in_msg));
+            dataProcessor.PushNewMessage(in_msg);
         }
         catch (std::exception& ex) {
             ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FILE__ % ex.what()));
@@ -141,10 +142,7 @@ void AsyncTcpConnection::Shutdown() {
 }
 
 void AsyncTcpConnection::Close(const boost::system::error_code& error) {
-    if (connMan_.Contains(id_))
-    {
-        ConsoleLogger::Info(boost::str(boost::format("Close connection user: %1% \n") % id_));
-        socket_.next_layer().close();
-        connMan_.RemoveConnection(id_);
-    }
+    ConsoleLogger::Info(boost::str(boost::format("Close connection user: %1% \n") % id_));
+    socket_.next_layer().close();
+    connMan_.RemoveConnection(id_);
 }

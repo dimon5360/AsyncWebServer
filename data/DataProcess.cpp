@@ -12,9 +12,10 @@
 
  /* boost C++ lib headers */
 #include <boost/lexical_cast.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
  /* local C++ headers */
-#include "../data/DataProcess.h"
+#include "DataProcess.h"
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
 #include "../conn/AsyncClient.h"
@@ -27,7 +28,7 @@ void DataProcess::StartDataProcessor() {
     }}.detach();
 }
 
-void DataProcess::PushNewMessage(std::string&& msg) const noexcept {
+void DataProcess::PushNewMessage(std::string& msg) const noexcept {
 
     try {
         std::unique_lock lk(mutex_);
@@ -37,6 +38,44 @@ void DataProcess::PushNewMessage(std::string&& msg) const noexcept {
     catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
     }
+}
+
+std::string DataProcess::ConstructMessage(const MessageBroker::T& id, std::string& message) {
+
+    namespace pt = boost::property_tree;
+    pt::ptree ptree;
+
+    ptree.put("user id", id);
+    ptree.put("message", message);
+    std::ostringstream oss;
+    boost::property_tree::json_parser::write_json(oss, ptree);
+    std::string res = jsonHandler->ConvertToString(ptree);
+    return res;
+}
+
+/*
+{
+    "message_identifier" : 1, // "users_list_broadcast_message" (JsonHandler::json_req_t)
+    "users_amount" : 1 ... N, // size of comtainer in UsersPool class (size_t)
+    "users_list" : [ "user1_id", "user2_id", ... "userN_id" ],
+}
+*/
+
+std::string DataProcess::GetUsersListInJson(std::string& usersList, const size_t usersCount) {
+
+    namespace pt = boost::property_tree;
+    pt::ptree ptree;
+
+    auto identifer = static_cast<uint32_t>(JsonHandler::json_req_t::users_list_broadcast_message);
+
+    ptree.put(JsonHandler::usersListJsonHeader, identifer);
+    ptree.put(JsonHandler::usersCountJsonField, usersCount);
+    ptree.put(JsonHandler::usersListJsonField, usersList);
+
+    std::ostringstream oss;
+    boost::property_tree::json_parser::write_json(oss, ptree);
+    std::string res = jsonHandler->ConvertToString(ptree);
+    return res;
 }
 
 void DataProcess::HandleInOutMessages() const noexcept {
@@ -51,19 +90,18 @@ void DataProcess::HandleInOutMessages() const noexcept {
     }
 }
 
-
 void DataProcess::ProcessNewMessage() const noexcept {
 
     try {
         std::string msg{ PullNewMessage() };
 
         namespace pt = boost::property_tree;
-        pt::ptree tree = jsonParser->ConstructTree(std::move(msg));
+        pt::ptree tree = jsonHandler->ConstructTree(msg);
 
-        auto userId = jsonParser->ParseTreeParam<std::string>(tree, "user id");
-        auto userMsg = jsonParser->ParseTreeParam<std::string>(tree, "message");
+        auto userId = jsonHandler->ParseTreeParam<std::string>(tree, "user id");
+        auto userMsg = jsonHandler->ParseTreeParam<std::string>(tree, "message");
         auto id = boost::lexical_cast<MessageBroker::T>(userId);
-        msgBroker->PushMessage(id, std::move(userMsg));
+        msgBroker->PushMessage(id, userMsg);
     }
     catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
@@ -91,7 +129,7 @@ std::string DataProcess::PullNewMessage() const noexcept {
     catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
     }
-    return res;
+    return std::move(res);
 }
 
 DataProcess dataProcessor;

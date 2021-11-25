@@ -17,7 +17,6 @@
 
 #include <spdlog/spdlog.h>
 
-/* local C++ headers */
 #include "Logger.h"
 
 uint64_t ConsoleLogger::GetCurrTimeMs() noexcept {
@@ -26,20 +25,17 @@ uint64_t ConsoleLogger::GetCurrTimeMs() noexcept {
     return nowMs.count();
 }
 
-/* write log string */
 void ConsoleLogger::Info(const std::string&& log) noexcept {
 
     spdlog::info(log);
 }
 
-/* write log string */
 void ConsoleLogger::Debug(const std::string&& log) noexcept {
 #ifdef DEBUG_ENABLE
     spdlog::info(log);
 #endif /* DEBUG_ENABLE */
 }
 
-/* write log string */
 void ConsoleLogger::Error(const std::string&& log) noexcept {
     spdlog::error(log);
 }

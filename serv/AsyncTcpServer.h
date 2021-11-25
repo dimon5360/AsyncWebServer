@@ -34,26 +34,12 @@ class AsyncTcpServer {
 
 private:
 
-    /* boost io_service object reference */
     boost::asio::io_service& io_service;
-    /* boost acceptor object */
     boost::asio::ip::tcp::acceptor acceptor_;
-    /* boost ssl context */
     boost::asio::ssl::context context_;
 
-    /***********************************************************************************
-     *  @brief  Callback-handler of async accepting process
-     *  @param  new_connection Shared pointer to new connection of client
-     *  @param  error Boost system error object reference
-     *  @return None
-     */
     void HandleAccept(AsyncClient::client_ptr& client,
         const boost::system::error_code& error);
-
-    /***********************************************************************************
-     *  @brief  Start async assepting process in socket
-     *  @return None
-     */
     void StartAccept();
 
 public:
@@ -65,9 +51,7 @@ public:
     AsyncTcpServer&& operator=(const AsyncTcpServer&&) = delete;
     AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t port);
 
-    ~AsyncTcpServer() {
-        std::cout << "AsyncTcpServer destructor\n";
-    }
+    ~AsyncTcpServer() { std::cout << "AsyncTcpServer destructor\n"; }
 
     static void StartTcpServer(boost::asio::io_service& ios);
     static void StopTcpServer(boost::asio::io_service& ios);

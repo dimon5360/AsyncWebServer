@@ -23,8 +23,8 @@
 
 #include <spdlog/spdlog.h>
 
-/* Build v.0.0.21 from 06.11.2021 */
-const uint32_t PATCH = 21;
+/* Build v.0.0.22 from 25.11.2021 */
+const uint32_t PATCH = 22;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -49,7 +49,7 @@ int main()
 
         boost::thread_group threads;
         boost::asio::io_context::work work(ios);
-        boost::asio::signal_set signals(work.get_io_context(), SIGINT);
+        boost::asio::signal_set signals(work.get_io_context(), SIGINT, SIGTERM);
 
         for (int i = 0; i < boost::thread::hardware_concurrency(); ++i)
         {

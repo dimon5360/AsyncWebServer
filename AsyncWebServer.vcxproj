@@ -154,6 +154,7 @@
     <ClCompile Include="crypto\dh.cpp" />
     <ClCompile Include="crypto\rsa.cpp" />
     <ClCompile Include="data\DataProcess.cpp" />
+    <ClCompile Include="data\UsersPool.cpp" />
     <ClCompile Include="db\PostgresProcess.cpp" />
     <ClCompile Include="log\Logger.cpp" />
     <ClCompile Include="main.cpp" />
@@ -170,6 +171,7 @@
     <ClInclude Include="crypto\dh.h" />
     <ClInclude Include="crypto\rsa.h" />
     <ClInclude Include="data\DataProcess.h" />
+    <ClInclude Include="data\UsersPool.h" />
     <ClInclude Include="db\PostgresProcessor.h" />
     <ClInclude Include="log\Logger.h" />
     <ClInclude Include="serv\AsyncTcpServer.h" />

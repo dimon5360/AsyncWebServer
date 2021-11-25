@@ -44,6 +44,7 @@ void AsyncTcpServer::HandleAccept(AsyncClient::client_ptr& client,
     if (!error)
     {
         ConsoleLogger::Info("New connection accepted. Start reading data.\n");
+        connMan_.AddConnection(std::ref(client));
         client->HandleAccept();
         StartAccept();
     }
@@ -58,8 +59,6 @@ void AsyncTcpServer::HandleAccept(AsyncClient::client_ptr& client,
  */
 void AsyncTcpServer::StartAccept() {
         
-    /*AsyncClient::client_ptr new_client = 
-        AsyncClient::CreateNewClient(io_service, context_);*/
     auto client = connMan_.CreateNewClient(io_service, context_);
 
     std::cout << "Current thread ID = " << std::this_thread::get_id();
@@ -94,8 +93,6 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t po
     io_service.run();
 }
 
-static IConfig scfg;
-
 /***********************************************************************************
  *  @brief  Config and start async TCP server on "host:port"
  *  @return None
@@ -104,11 +101,10 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
 
     try {
         /* open db config file */
-        scfg.Open("server.ini");
-        uint16_t port = 4059;// boost::lexical_cast<uint16_t>(scfg.GetRecordByKey("port"));
-#if !defined(DATA_PROCESS)
-        connMan_();
-#endif /* !defined(DATA_PROCESS) */
+        auto scfg = std::make_shared<IConfig>();
+        scfg->Open("server.ini");
+        auto sport = scfg->GetRecordByKey("port");
+        uint16_t port = std::atoi(sport.c_str());
         std::make_unique<AsyncTcpServer>(std::move(ios), port);
     }
     catch (std::exception& ex) {

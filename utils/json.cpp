@@ -12,52 +12,30 @@
 #include "json.h"
 #include "../log/Logger.h"
 
+#include <fstream>
+#include <iostream>
+
 /* external C++ libs headers -------------------------------- */
 /* boost C++ lib headers */
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/format.hpp>
 #include <boost/iostreams/stream.hpp>
-
 /* spdlog C++ lib */
 #include <spdlog/spdlog.h>
 
+std::string JsonHandler::usersListJsonHeader = "message_identifier";
+std::string JsonHandler::usersCountJsonField = "users_amount";
+std::string JsonHandler::usersListJsonField = "users_list";
+
 /* public method implementation ----------------------------- */
 
-/* TEST JSON data
- * 
- {
-    "height" : 320,
-    "some" :
-    {
-        "complex" :
-        {
-            "path" : "hello"
-        }
-    },
-    "animals" :
-    {
-        "rabbit" : "white",
-        "dog" : "brown",
-        "cat" : "grey"
-    },
-    "fruits" : ["apple", "raspberry", "orange"],
-    "matrix" : [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
- }
- * 
- */
-
-#include <fstream>
-#include <iostream>
-
-//std::string sTempJson = "{ \"usermail\" : \"test@test.com\", \"username\" : \"test\", \"password\" : \"testPASS2#$\", \"active\" : true }\r\n";
-
-void JsonParser::PushRequest(std::string&& inReq) const noexcept {
+void JsonHandler::PushRequest(std::string&& inReq) const noexcept {
     std::unique_lock lk(mtx_);
     msgQueue.push(std::move(inReq));
 }
 
-std::string JsonParser::PullRequest() const noexcept {
+std::string JsonHandler::PullRequest() const noexcept {
     std::unique_lock lk(mtx_);
     std::string outMsg{ "" };
     if (!msgQueue.empty()) {
@@ -68,11 +46,11 @@ std::string JsonParser::PullRequest() const noexcept {
 }
 
 
-void JsonParser::HandleAuthJson(std::string&& authJson) noexcept {
+void JsonHandler::HandleAuthJson(std::string&& authJson) noexcept {
 
     namespace pt = boost::property_tree;
 
-    pt::ptree tree = ConstructTree(std::move(authJson));
+    pt::ptree tree = ConstructTree(authJson);
     auto usermail = ParseTreeParam<std::string>(tree, "usermail");
     ConsoleLogger::Debug(boost::str(boost::format("%1%") % usermail));
     auto username = ParseTreeParam<std::string>(tree, "username");
@@ -83,7 +61,7 @@ void JsonParser::HandleAuthJson(std::string&& authJson) noexcept {
     // TODO: send to postgres processor
 }
 
-void JsonParser::HandleRequest(std::string&& json, const json_req_t& type) noexcept {
+void JsonHandler::HandleRequest(std::string&& json, const json_req_t& type) noexcept {
 
     try {
         switch (type) {
@@ -109,7 +87,7 @@ void JsonParser::HandleRequest(std::string&& json, const json_req_t& type) noexc
     }
 }
 
-boost::property_tree::ptree JsonParser::ConstructTree(std::string&& jsonString) {
+boost::property_tree::ptree JsonHandler::ConstructTree(const std::string& jsonString) {
     namespace pt = boost::property_tree;
     pt::ptree ptree;
     boost::iostreams::array_source as(jsonString.data(), jsonString.size());
@@ -118,7 +96,7 @@ boost::property_tree::ptree JsonParser::ConstructTree(std::string&& jsonString) 
     return ptree;
 }
 
-void JsonParser::PrintTree(boost::property_tree::ptree& tree) {
+void JsonHandler::PrintTree(boost::property_tree::ptree& tree) {
 
     /* print separate parameters */
     std::string msg;
@@ -139,16 +117,24 @@ void JsonParser::PrintTree(boost::property_tree::ptree& tree) {
 }
 
 template<typename T>
-T JsonParser::ParseJsonParam(const std::string& jsonReq, std::string&& sparam) {
-    auto tree = ConstructTree(std::move(jsonReq));
+T JsonHandler::ParseJsonParam(const std::string& jsonReq, std::string&& sparam) {
+    auto tree = ConstructTree(jsonReq);
     auto param = tree.get<T>(std::move(sparam));
     return param;
 }
 
 template<typename T>
-T JsonParser::ParseTreeParam(const boost::property_tree::ptree& jsonTree, std::string&& sparam) {
+T JsonHandler::ParseTreeParam(const boost::property_tree::ptree& jsonTree, std::string&& sparam) {
     auto param = jsonTree.get<T>(std::move(sparam));
     return param;
+}
+
+
+std::string JsonHandler::ConvertToString(const boost::property_tree::ptree& jsonTree) const noexcept {
+
+    std::ostringstream oss;
+    boost::property_tree::json_parser::write_json(oss, jsonTree);
+    return oss.str();
 }
 
 
