@@ -63,7 +63,7 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
 {
     if (!error)
     {
-        std::string_view in_hello_msg{ buf.data(), recvBytes };
+        std::string in_hello_msg{ buf.data(), recvBytes };
         ConsoleLogger::Info(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
 
         if (in_hello_msg.starts_with(hello_msg_header)) {

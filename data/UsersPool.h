@@ -27,8 +27,8 @@ private:
 
 public:
 
-    static const uint32_t BROADCAST_ID = std::numeric_limits<T>::max();
-
+    static const uint32_t BROADCAST_ID;
+    
     auto begin() const { return clients.begin(); }
     auto end() const { return clients.end(); }
 
@@ -36,11 +36,11 @@ public:
     UsersPool& operator=(UsersPool& pool) = delete;
 
     UsersPool(uint32_t maxUserCount) {
-        std::cout << "UsersPool class constructor\n";
+        std::cout << "Construct UsersPool class\n";
         clients.reserve(maxUserCount);
     }
     ~UsersPool() {
-        std::cout << "UsersPool class destructor\n";
+        std::cout << "Destruct UsersPool class\n";
     }
 
     void StoreNewClient(const T& id, AsyncClient::client_ptr& ptr) const noexcept;

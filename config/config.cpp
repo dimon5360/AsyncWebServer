@@ -47,13 +47,13 @@ void IConfig::Close() noexcept {
 void IConfig::Open(const std::string&& configname) {
     config_.open(configname); // launch under debug from VS
     if (!config_) {
-        throw std::exception("Config TCP server file is invalid");
+        throw std::runtime_error("Config TCP server file is invalid"); 
     }
 
     Read();
 }
 
-const IConfig::config_record& IConfig::GetRecordByKey(const IConfig::config_record&& key) const {
+const IConfig::config_record IConfig::GetRecordByKey(const IConfig::config_record&& key) const {
 
     config_record ret;
     try {

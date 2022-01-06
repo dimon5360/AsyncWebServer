@@ -23,7 +23,7 @@ public:
     void PrintContain() noexcept;
     void Close() noexcept;
     void Open(const std::string&& configname);
-    const IConfig::config_record& GetRecordByKey(const config_record&& key) const;
+    const IConfig::config_record GetRecordByKey(const config_record&& key) const;
 
     /* constructor */
     IConfig() {

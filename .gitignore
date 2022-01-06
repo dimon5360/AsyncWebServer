@@ -1,6 +1,7 @@
 /.vs/
 /x64/
 /api/
+/build/
 
 *.ini
 
@@ -11,5 +12,4 @@
 *.srl
 
 *.json
-*.txt
 *.log

@@ -102,9 +102,10 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
     try {
         /* open db config file */
         auto scfg = std::make_shared<IConfig>();
-        scfg->Open("server.ini");
+        scfg->Open("./server.ini");
         auto sport = scfg->GetRecordByKey("port");
         uint16_t port = std::atoi(sport.c_str());
+        std::cout << "Start TCP server...\n";
         std::make_unique<AsyncTcpServer>(std::move(ios), port);
     }
     catch (std::exception& ex) {

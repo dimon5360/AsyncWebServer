@@ -20,6 +20,7 @@
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/scoped_thread.hpp>
+#include <boost/asio/thread_pool.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -39,7 +40,7 @@ int main()
 
     const std::string shello = "Hello. Application version is %1%.%2%.%3%\n";
     /* for corrent output boost error messages */
-    SetConsoleOutputCP(1251);
+    // SetConsoleOutputCP(1251);
     spdlog::info(boost::str(boost::format(shello) % MAJOR % MINOR % PATCH));
 
     try
@@ -48,22 +49,25 @@ int main()
         boost::asio::io_service ios;
 
         boost::thread_group threads;
+        // boost::thread_pool pool(boost::thread::hardware_concurrency());
+
         boost::asio::io_context::work work(ios);
         boost::asio::signal_set signals(work.get_io_context(), SIGINT, SIGTERM);
 
-        for (int i = 0; i < boost::thread::hardware_concurrency(); ++i)
+        for (unsigned int i = 0; i < boost::thread::hardware_concurrency(); ++i)
         {
             threads.create_thread([&]() {
                 work.get_io_context().run();
             });
         }
+
         boost::asio::post(work.get_io_context(), [&]() {
-            AsyncTcpServer::StartTcpServer(std::ref(work.get_io_context()));
+            AsyncTcpServer::StartTcpServer(work.get_io_context());
         });
 
         /* asynchronous wait for Ctrl + C signal to occur */
         signals.async_wait([&](const boost::system::error_code& error, int signal_number) {
-            AsyncTcpServer::StopTcpServer(std::ref(work.get_io_context()));
+            AsyncTcpServer::StopTcpServer(work.get_io_context());
             work.get_io_context().stop();
         });
 

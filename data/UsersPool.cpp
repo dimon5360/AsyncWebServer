@@ -5,6 +5,10 @@
 
 #include <boost/format.hpp>
 
+
+const uint32_t UsersPool::BROADCAST_ID = std::numeric_limits<T>::max();
+
+
 void UsersPool::StoreNewClient(const T& id, AsyncClient::client_ptr& ptr) const noexcept {
     try{
         std::unique_lock lk(mutex_);
