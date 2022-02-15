@@ -62,6 +62,8 @@ unittest_code_t init_unit_tests() {
 
 #ifdef TEST_MONGO_DB_CONNECT
 
+#include "../db/MongoProcess.h"
+
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -84,20 +86,24 @@ using bsoncxx::builder::stream::open_document;
 
 static int test_mongo_connect() {
 
-    mongocxx::instance instance{}; // This should be done only once.
+    /*mongocxx::instance instance{}; // This should be done only once.
     mongocxx::client client{mongocxx::uri{"mongodb://localhost:27017"}};
 
     mongocxx::database db = client["test"];
     std::vector<bsoncxx::document::value> documents;
-    for(int i = 0; i < 100; i++) {
+    for(int i = 0; i < 10; i++) {
         documents.push_back(
         bsoncxx::builder::stream::document{} << "i" << i << finalize);
 
     }
     mongocxx::collection collection = db["my_coll"];
-    collection.insert_many(documents);
+    collection.insert_many(documents);*/
 
-    return -1;
+    std::shared_ptr mongo = std::make_shared<MongoProcessor>("mongodb://localhost:27017");
+    mongo->testInsert("test", "test_coll");
+    mongo->testRequest("test", "test_coll");
+
+    return 0;
 }
 #endif // TEST_MONGO_DB_CONNECT
 
