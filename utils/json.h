@@ -11,7 +11,7 @@
  /* boost C++ lib headers */
 #include <boost/property_tree/ptree.hpp>
 
-/* std Ñ++ lib headers */
+/* std ï¿½++ lib headers */
 #include <queue>
 #include <shared_mutex>
 
@@ -19,9 +19,10 @@ class JsonHandler {
 
 public:
     using json_req_t = enum class req_t : uint32_t {
-        users_list_broadcast_message = 1,
-        authentication_request,
+        users_list_message = 1,
+        authentication_message,
         user_message,
+        group_users_message,
     };
 
     static std::string usersListJsonHeader;
@@ -31,7 +32,6 @@ public:
 private:
 
     void PrintTree(boost::property_tree::ptree& tree);
-
     void HandleAuthJson(std::string&& authJson) noexcept;
 
 public:

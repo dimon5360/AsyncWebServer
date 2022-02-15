@@ -74,7 +74,7 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
             socket_.async_write_some(boost::asio::buffer(resp),
                 [&](const boost::system::error_code& error,
                     std::size_t bytes_transferred) {
-                        connMan_.SendUsersListToEveryone();
+                        connMan_.SendUsersListToEveryone(); // TODO: send users list only to concrete user which just connected
                         StartRead();
                 });
         }
@@ -110,12 +110,7 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 
         to_lower(std::move(in_msg.data()));
 
-        try {
-            dataProcessor.PushNewMessage(in_msg);
-        }
-        catch (std::exception& ex) {
-            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FILE__ % ex.what()));
-        }
+        dataProcessor.PushNewMessage(in_msg);
         StartRead();
     }
     else {

@@ -16,10 +16,6 @@
  /* boost C++ lib headers */
 #include <boost/date_time.hpp>
 
-/* extern C++ lib pqxx headers */
-#include <pqxx/pqxx>
-#include <spdlog/spdlog.h>
-
 /* local C++ headers */
 #include "../config/config.h"
 

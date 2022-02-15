@@ -65,7 +65,7 @@ void JsonHandler::HandleRequest(std::string&& json, const json_req_t& type) noex
 
     try {
         switch (type) {
-            case json_req_t::authentication_request:
+            case json_req_t::authentication_message:
             {
                 HandleAuthJson(std::move(json));
                 break;

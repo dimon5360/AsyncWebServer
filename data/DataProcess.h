@@ -50,6 +50,11 @@ public:
 
 private:
 
+    void ProcessUserMessage(const boost::property_tree::ptree& tree) const noexcept;
+    void ProcessAuthMessage(const boost::property_tree::ptree& tree) const noexcept;
+    void ProcessGroupMessage(const boost::property_tree::ptree& tree) const noexcept;
+    void ProcessUsersListRequest(const boost::property_tree::ptree& tree) const noexcept;
+
     void SendLastMessage() const noexcept;
     void ProcessNewMessage() const noexcept;
     void HandleInOutMessages() const noexcept;

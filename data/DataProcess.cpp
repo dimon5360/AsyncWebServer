@@ -9,6 +9,7 @@
  */
 
  /* std C++ lib headers */
+ #include "string.h"
 
  /* boost C++ lib headers */
 #include <boost/lexical_cast.hpp>
@@ -53,11 +54,22 @@ std::string DataProcess::ConstructMessage(const MessageBroker::T& id, std::strin
     return res;
 }
 
-/*
+/* structure of users list response message
 {
-    "message_identifier" : 1, // "users_list_broadcast_message" (JsonHandler::json_req_t)
+    "message_identifier" : users_list_message // details (JsonHandler::json_req_t)
     "users_amount" : 1 ... N, // size of comtainer in UsersPool class (size_t)
     "users_list" : [ "user1_id", "user2_id", ... "userN_id" ],
+}
+*/
+
+/* structure of different request messages 
+{
+    "message_identifier" : authentication_message | user_message | group_users_message
+    "src user id" : async connection ID
+    "dst user id" : [] async connection IDs (optional, depending from message type)
+    "message" : " ... ",
+    "timestamp" : system datetime
+    "hash" : sha512 | sha256
 }
 */
 
@@ -66,7 +78,7 @@ std::string DataProcess::GetUsersListInJson(std::string& usersList, const size_t
     namespace pt = boost::property_tree;
     pt::ptree ptree;
 
-    auto identifer = static_cast<uint32_t>(JsonHandler::json_req_t::users_list_broadcast_message);
+    auto identifer = static_cast<uint32_t>(JsonHandler::json_req_t::users_list_message);
 
     ptree.put(JsonHandler::usersListJsonHeader, identifer);
     ptree.put(JsonHandler::usersCountJsonField, usersCount);
@@ -90,18 +102,74 @@ void DataProcess::HandleInOutMessages() const noexcept {
     }
 }
 
+void DataProcess::ProcessUserMessage(const boost::property_tree::ptree& tree) const noexcept {
+    auto userId = jsonHandler->ParseTreeParam<std::string>(tree, std::move("user id"));
+    auto userMsg = jsonHandler->ParseTreeParam<std::string>(tree, std::move("message"));
+    auto id = boost::lexical_cast<MessageBroker::T>(userId);
+    msgBroker->PushMessage(id, userMsg);
+}
+
+void DataProcess::ProcessGroupMessage(const boost::property_tree::ptree& tree) const noexcept {
+    // TODO:
+    (void)tree;
+}
+
+void DataProcess::ProcessAuthMessage(const boost::property_tree::ptree& tree) const noexcept {
+    // TODO: process user authentication data
+    // here must send request to DB service to validate user data
+}
+
+void DataProcess::ProcessUsersListRequest(const boost::property_tree::ptree& tree) const noexcept {
+
+    try {
+        auto userId = jsonHandler->ParseTreeParam<std::string>(tree, std::move("user id"));
+        connMan_.SendUsersListToUser(boost::lexical_cast<uint32_t>(userId));
+    }
+    catch (std::exception& ex) {
+        ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
+    }
+}
+
 void DataProcess::ProcessNewMessage() const noexcept {
 
     try {
         std::string msg{ PullNewMessage() };
 
+        // TODO: keep msg in NoSQL DB
+
         namespace pt = boost::property_tree;
         pt::ptree tree = jsonHandler->ConstructTree(msg);
 
-        auto userId = jsonHandler->ParseTreeParam<std::string>(tree, "user id");
-        auto userMsg = jsonHandler->ParseTreeParam<std::string>(tree, "message");
-        auto id = boost::lexical_cast<MessageBroker::T>(userId);
-        msgBroker->PushMessage(id, userMsg);
+        // read new message ID (identification of message in hierarchy)
+        auto msgId = jsonHandler->ParseTreeParam<std::string>(tree, "message_identifier");
+        auto identifer = boost::lexical_cast<uint32_t>(msgId);
+
+        switch(static_cast<JsonHandler::json_req_t>(identifer)) {
+            case JsonHandler::json_req_t::users_list_message: {
+                /* app client can send such messages to synch list of users */
+                ProcessUsersListRequest(tree);
+                break;
+            }
+            case JsonHandler::json_req_t::authentication_message: {
+                /* user connection message */
+                ProcessAuthMessage(tree);
+                break;
+            }
+            case JsonHandler::json_req_t::user_message: {
+                /* usual users messages */
+                ProcessUserMessage(tree);
+                break;
+            }
+            case JsonHandler::json_req_t::group_users_message: {
+                /* user can send such messages in bounded group of users */
+                ProcessGroupMessage(tree);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+
     }
     catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));

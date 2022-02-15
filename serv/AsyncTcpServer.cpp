@@ -7,7 +7,6 @@
  *  @version    1.0
  */
 
-/* std C++ lib headers */
 #include <iostream>
 #include <unordered_map>
 #include <memory>
@@ -16,7 +15,6 @@
 #include <cstdint>
 #include <thread>
 
-/* boost C++ lib headers */
 #include <boost/format.hpp>
 #include <boost/asio.hpp> 
 #include <boost/array.hpp> 
@@ -24,7 +22,6 @@
 #include <boost/bind/placeholders.hpp>
 #include <boost/date_time.hpp>
 
-/* local C++ headers */
 #include "AsyncTcpServer.h"
 #include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
@@ -32,12 +29,6 @@
 
 ConnectionManager connMan_;
 
-/***********************************************************************************
- *  @brief  Callback-handler of async accepting process
- *  @param  new_connection Shared pointer to new connection of client
- *  @param  error Boost system error object reference
- *  @return None
- */
 void AsyncTcpServer::HandleAccept(AsyncClient::client_ptr& client,
     const boost::system::error_code& error)
 {
@@ -53,10 +44,6 @@ void AsyncTcpServer::HandleAccept(AsyncClient::client_ptr& client,
     }
 }
 
-/***********************************************************************************
- *  @brief  Start async assepting process in socket
- *  @return None
- */
 void AsyncTcpServer::StartAccept() {
         
     auto client = connMan_.CreateNewClient(io_service, context_);
@@ -70,9 +57,6 @@ void AsyncTcpServer::StartAccept() {
             std::placeholders::_1));
 }
 
-/***********************************************************************************
- *  @brief  Async server constructor
- */
 AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t port) :
     io_service(std::ref(io_service)),
     acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
@@ -93,10 +77,6 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t po
     io_service.run();
 }
 
-/***********************************************************************************
- *  @brief  Config and start async TCP server on "host:port"
- *  @return None
- */
 void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
 
     try {
@@ -113,10 +93,6 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
     }
 }
 
-/***********************************************************************************
- *  @brief  Close all connections and stop async TCP server io service
- *  @return None
- */
 void AsyncTcpServer::StopTcpServer(boost::asio::io_service& ios) {
     connMan_.DeactivateManager();
     connMan_.CloseAllConnections();

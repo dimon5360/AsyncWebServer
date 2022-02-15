@@ -27,7 +27,7 @@ private:
 
 public:
 
-    static const uint32_t BROADCAST_ID;
+    static const T BROADCAST_ID;
     
     auto begin() const { return clients.begin(); }
     auto end() const { return clients.end(); }
@@ -49,5 +49,6 @@ public:
     bool IsThereSuchClient(const T& id) const noexcept;
     void DisconnectAllClients() const noexcept;
     const size_t GetUsersAmount() const noexcept;
+    void SendoutUsersListToUser(const uint32_t id) const noexcept;
     void SendoutUsersList() const noexcept;
 };

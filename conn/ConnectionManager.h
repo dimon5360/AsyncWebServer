@@ -49,7 +49,6 @@ private:
             std::cout << "Construct new random numbers generator class\n";
         }
 
-        /* destructor */
         ~CustomRandomGen() {
             std::cout << "Destruct random generator class\n";
         }
@@ -146,6 +145,11 @@ public:
     {
         users->DisconnectAllClients();
         std::cout << "All connections are closed\n";
+    }
+
+    void SendUsersListToUser(const T id) 
+    {
+        users->SendoutUsersListToUser(id);
     }
 
     void SendUsersListToEveryone() 

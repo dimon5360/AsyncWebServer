@@ -8,7 +8,7 @@
 
 #pragma once
 
-#define UNIT_TEST false//true
+#define UNIT_TEST true // false or true
 
 #if UNIT_TEST     
 
@@ -25,7 +25,9 @@ using unittest_code_t = enum class UnitestCode {
 /* coroutines tests */
 #define TEST_COROUTINES         0
 /* json parser tests */
-#define TEST_PARSE_JSON         1
+#define TEST_PARSE_JSON         0
+
+#define TEST_MONGO_DB_CONNECT   1
 
 extern unittest_code_t init_unit_tests();
 

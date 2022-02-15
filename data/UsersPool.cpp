@@ -48,18 +48,33 @@ bool UsersPool::IsThereSuchClient(const T& id) const noexcept {
     return clients.contains(id);
 }
 
-void UsersPool::SendoutUsersList() const noexcept {
+void UsersPool::SendoutUsersListToUser(const uint32_t id) const noexcept {
 
     try {
         std::unique_lock lk(mutex_);
         auto users = PrepareUsersIdsList();
         std::string json = dataProcessor.GetUsersListInJson(users, clients.size());
-        std::string message = dataProcessor.ConstructMessage(UsersPool::BROADCAST_ID, json);
+        std::string message = dataProcessor.ConstructMessage(id, json);
         dataProcessor.PushNewMessage(message);
     }
     catch (std::exception& ex) {
         std::cout << ex.what() << std::endl;
     }
+}
+
+void UsersPool::SendoutUsersList() const noexcept {
+
+    SendoutUsersListToUser(UsersPool::BROADCAST_ID);
+//     try {
+//         std::unique_lock lk(mutex_);
+//         auto users = PrepareUsersIdsList();
+//         std::string json = dataProcessor.GetUsersListInJson(users, clients.size());
+//         std::string message = dataProcessor.ConstructMessage(UsersPool::BROADCAST_ID, json);
+//         dataProcessor.PushNewMessage(message);
+//     }
+//     catch (std::exception& ex) {
+//         std::cout << ex.what() << std::endl;
+//     }
 }
 
 void UsersPool::DisconnectAllClients() const noexcept {

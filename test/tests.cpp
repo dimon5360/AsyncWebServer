@@ -25,6 +25,7 @@ using testcase_t = enum class Testcase {
     test_RSACryptoAlg = 1,
     test_DHCryptoAlg,
     test_JsonParser,
+    test_MongoDbConnect,
 };
 
 /* tests declarations --------------------------------------- */
@@ -53,11 +54,52 @@ static void tests_start(testcase_t testcase);
 unittest_code_t init_unit_tests() {
 
     unittest_code_t ret = UnitestCode::unittest_ok;
-    tests_start(Testcase::test_JsonParser);
+    tests_start(Testcase::test_MongoDbConnect);
     return ret;
 }
 
 /* tests implementations ---------------------------------- */
+
+#ifdef TEST_MONGO_DB_CONNECT
+
+#include <cstdint>
+#include <iostream>
+#include <vector>
+#include <bsoncxx/json.hpp>
+#include <mongocxx/client.hpp>
+#include <mongocxx/stdx.hpp>
+#include <mongocxx/uri.hpp>
+#include <mongocxx/instance.hpp>
+#include <bsoncxx/builder/stream/helpers.hpp>
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/array.hpp>
+
+
+using bsoncxx::builder::stream::close_array;
+using bsoncxx::builder::stream::close_document;
+using bsoncxx::builder::stream::document;
+using bsoncxx::builder::stream::finalize;
+using bsoncxx::builder::stream::open_array;
+using bsoncxx::builder::stream::open_document;
+
+static int test_mongo_connect() {
+
+    mongocxx::instance instance{}; // This should be done only once.
+    mongocxx::client client{mongocxx::uri{"mongodb://localhost:27017"}};
+
+    mongocxx::database db = client["test"];
+    std::vector<bsoncxx::document::value> documents;
+    for(int i = 0; i < 100; i++) {
+        documents.push_back(
+        bsoncxx::builder::stream::document{} << "i" << i << finalize);
+
+    }
+    mongocxx::collection collection = db["my_coll"];
+    collection.insert_many(documents);
+
+    return -1;
+}
+#endif // TEST_MONGO_DB_CONNECT
 
 #if TEST_RSA_CRYPTO
 #include "../crypto/rsa.h"
@@ -168,6 +210,8 @@ static void tests_start(testcase_t testcase) {
 #if TEST_PARSE_JSON
     case Testcase::test_JsonParser: test_parse_json(); break;
 #endif /* TEST_PARSE_JSON */
+
+    case Testcase::test_MongoDbConnect: test_mongo_connect(); break;
 
     default: spdlog::error("Undefined test case");
     }
