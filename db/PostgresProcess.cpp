@@ -31,8 +31,6 @@
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
 
-static IConfig dbcfg;
-
 // std::string SHA256(std::string data)
 // {
 //     using namespace CryptoPP;
@@ -57,14 +55,15 @@ void PostgresProcessor::InitializeDatabaseConnection() {
     try
     {
         /* open db config file */
-        dbcfg.Open("db.ini");
+        auto dbcfg = std::make_shared<IConfig>();
+        dbcfg->Open("postgres.ini");
         std::string connection_string{
             boost::str(boost::format("dbname=%1% user=%2% password=%3% host=%4% port=%5%") 
-            % dbcfg.GetRecordByKey("dbname") 
-            % dbcfg.GetRecordByKey("admin")
-            % dbcfg.GetRecordByKey("password")
-            % dbcfg.GetRecordByKey("host")
-            % dbcfg.GetRecordByKey("port"))};
+            % dbcfg->GetConfigValueByKey("dbname") 
+            % dbcfg->GetConfigValueByKey("admin")
+            % dbcfg->GetConfigValueByKey("password")
+            % dbcfg->GetConfigValueByKey("host")
+            % dbcfg->GetConfigValueByKey("port"))};
 
 
         // std::string connection_string{"postgresql://postgres:1234@localhost:5432/postgres"};
@@ -77,7 +76,7 @@ void PostgresProcessor::InitializeDatabaseConnection() {
         } 
         pqxx::work W{ C };
 
-        pqxx::result R{ W.exec(boost::str(boost::format("SELECT * FROM %1% where email = \'%2%\';\n") % dbcfg.GetRecordByKey("dbusertable") % "vasiliy@test.com")) };
+        pqxx::result R{ W.exec(boost::str(boost::format("SELECT * FROM %1% where email = \'%2%\';\n") % dbcfg->GetConfigValueByKey("dbusertable") % "vasiliy@test.com")) };
 
         if (R.size()) {
             spdlog::info(boost::str(boost::format("Found %1% users:") % R.size()));

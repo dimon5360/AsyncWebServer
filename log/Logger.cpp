@@ -3,15 +3,12 @@
  *  @brief      Logger class implementation
  *  @author     Kalmykov Dmitry
  *  @date       28.04.2021
- *  @modified   19.08.2021
  *  @version    0.1
  */
 
-/* std C++ lib headers */
 #include <iostream>
 #include <chrono>
 
-/* boost C++ lib headers */
 #include <boost/format.hpp>
 #include <boost/date_time.hpp>
 

@@ -62,7 +62,7 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t po
     acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
     context_(boost::asio::ssl::context::tlsv13)
 {
-    ConsoleLogger::Info("AsyncTcpServer constructor");
+    ConsoleLogger::Info("Construct AsyncTcpServer class");
 
     ConsoleLogger::Info(boost::str(boost::format("Start listening to %1% port") % port));
 
@@ -82,8 +82,8 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
     try {
         /* open db config file */
         auto scfg = std::make_shared<IConfig>();
-        scfg->Open("./server.ini");
-        auto sport = scfg->GetRecordByKey("port");
+        scfg->Open("server.ini");
+        auto sport = scfg->GetConfigValueByKey("port");
         uint16_t port = std::atoi(sport.c_str());
         std::cout << "Start TCP server...\n";
         std::make_unique<AsyncTcpServer>(std::move(ios), port);

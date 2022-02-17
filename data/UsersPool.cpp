@@ -20,7 +20,7 @@ void UsersPool::StoreNewClient(const T& id, AsyncClient::client_ptr& ptr) const 
     }
 }
 
-const AsyncClient::client_ptr& UsersPool::GetClient(const T& id) const noexcept {
+const AsyncClient::client_ptr UsersPool::GetClient(const T& id) const noexcept {
     AsyncClient::client_ptr ptr = nullptr;
     try {
         std::shared_lock lk(mutex_);
@@ -97,6 +97,7 @@ const size_t UsersPool::GetUsersAmount() const noexcept {
     catch (std::exception& ex) {
         std::cout << ex.what() << std::endl;
     }
+    return 0;
 }
 
 std::string UsersPool::PrepareUsersIdsList() const {

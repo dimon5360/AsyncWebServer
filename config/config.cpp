@@ -11,10 +11,13 @@
 #include <unordered_map>
 #include <sstream>
 
+#include <boost/format.hpp>
+#include <spdlog/spdlog.h>
+
 /* local C++ headers */
 #include "config.h"
 
-void IConfig::Read() {
+void IConfig::Read() const noexcept {
     std::string record;
     std::string key, symbol, value;
 
@@ -32,7 +35,7 @@ void IConfig::Read() {
     }
 }
 
-void IConfig::PrintContain() noexcept {
+void IConfig::PrintContain() const noexcept {
     config_record record;
     for (; !config_.eof();) {
         std::getline(config_, record, '\n');
@@ -40,27 +43,26 @@ void IConfig::PrintContain() noexcept {
     }
 }
 
-void IConfig::Close() noexcept {
+void IConfig::Close() const noexcept {
     config_.close();
 }
 
-void IConfig::Open(const std::string&& configname) {
-    config_.open(configname); // launch under debug from VS
+void IConfig::Open(std::string&& configname) const {
+    config_.open(configname);
     if (!config_) {
-        throw std::runtime_error("Config TCP server file is invalid"); 
+        throw std::runtime_error("Config file is invalid"); 
     }
-
     Read();
 }
 
-const IConfig::config_record IConfig::GetRecordByKey(const IConfig::config_record&& key) const {
+IConfig::config_record IConfig::GetConfigValueByKey(IConfig::config_record&& key) const noexcept {
 
     config_record ret;
     try {
         ret = mcfg.at(key);
     }
     catch (std::exception& ex) {
-        std::cout << ex.what() << std::endl;
+        spdlog::error(boost::str(boost::format("%1% %2%") % "Condfig get value error: " % ex.what()));
     }
     return ret;
 }

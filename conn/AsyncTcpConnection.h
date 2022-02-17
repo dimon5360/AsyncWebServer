@@ -66,11 +66,11 @@ public:
         : socket_(io_service, context_),
         id_(id)
     {
-        std::cout << "AsyncTcpConnection constructor for user ID = " << id_ << "\n";
+        std::cout << "Construct AsyncTcpConnection class for user ID = " << id_ << "\n";
     }
 
     ~AsyncTcpConnection() {
-        std::cout << "AsyncTcpConnection destructor for user ID = " << id_ << "\n";
+        std::cout << "Destruct AsyncTcpConnection class for user ID = " << id_ << "\n";
     }
 
     void StartWriteMessage(const std::string& msg);

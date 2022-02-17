@@ -44,7 +44,7 @@ public:
     }
 
     void StoreNewClient(const T& id, AsyncClient::client_ptr& ptr) const noexcept;
-    const AsyncClient::client_ptr& GetClient(const T& id) const noexcept;
+    const AsyncClient::client_ptr GetClient(const T& id) const noexcept;
     void RemoveExistedClient(const T& id) const noexcept;
     bool IsThereSuchClient(const T& id) const noexcept;
     void DisconnectAllClients() const noexcept;

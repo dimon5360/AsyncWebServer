@@ -14,23 +14,15 @@ class IConfig {
 
 private:
     using config_record = std::string;
-    std::ifstream config_;
-    std::unordered_map<config_record, config_record> mcfg;
+    mutable std::ifstream config_;
+    mutable std::unordered_map<config_record, config_record> mcfg;
 
 public:
 
-    void Read();
-    void PrintContain() noexcept;
-    void Close() noexcept;
-    void Open(const std::string&& configname);
-    const IConfig::config_record GetRecordByKey(const config_record&& key) const;
+    void Read() const noexcept;
+    void PrintContain() const noexcept;
+    void Close() const noexcept;
+    void Open(std::string&& configname) const;
 
-    /* constructor */
-    IConfig() {
-        std::cout << "Construct config class\n";
-    }
-    /* destructor */
-    ~IConfig() {
-        std::cout << "Destruct config class\n";
-    }
+    IConfig::config_record GetConfigValueByKey(config_record&& key) const noexcept;
 };

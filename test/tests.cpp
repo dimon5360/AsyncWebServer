@@ -86,22 +86,8 @@ using bsoncxx::builder::stream::open_document;
 
 static int test_mongo_connect() {
 
-    /*mongocxx::instance instance{}; // This should be done only once.
-    mongocxx::client client{mongocxx::uri{"mongodb://localhost:27017"}};
-
-    mongocxx::database db = client["test"];
-    std::vector<bsoncxx::document::value> documents;
-    for(int i = 0; i < 10; i++) {
-        documents.push_back(
-        bsoncxx::builder::stream::document{} << "i" << i << finalize);
-
-    }
-    mongocxx::collection collection = db["my_coll"];
-    collection.insert_many(documents);*/
-
-    std::shared_ptr mongo = std::make_shared<MongoProcessor>("mongodb://localhost:27017");
-    mongo->testInsert("test", "test_coll");
-    mongo->testRequest("test", "test_coll");
+    std::shared_ptr<MongoProcessor> mongo = std::make_shared<MongoProcessor>("mongo.ini");
+    mongo->InsertNewMessage("{ \"user id\" : \"1234\", \"message\" : \"hello world\"}");
 
     return 0;
 }

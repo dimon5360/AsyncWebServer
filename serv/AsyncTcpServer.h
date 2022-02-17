@@ -51,7 +51,7 @@ public:
     AsyncTcpServer&& operator=(const AsyncTcpServer&&) = delete;
     AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t port);
 
-    ~AsyncTcpServer() { std::cout << "AsyncTcpServer destructor\n"; }
+    ~AsyncTcpServer() { std::cout << "Destruct AsyncTcpServer class\n"; }
 
     static void StartTcpServer(boost::asio::io_service& ios);
     static void StopTcpServer(boost::asio::io_service& ios);

@@ -163,8 +163,7 @@ protected:
         try {
             if (connId == UsersPool::BROADCAST_ID) {
                 for (auto it = users->begin(); it != users->end(); ++it) {
-                    auto client = users->GetClient(it->first);
-                    client->ResendMessage(user_msg);
+                    users->GetClient(it->first)->ResendMessage(user_msg);
                     std::this_thread::sleep_for(std::chrono::microseconds(20));
                 }
             }

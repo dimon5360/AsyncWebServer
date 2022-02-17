@@ -24,8 +24,8 @@
 
 #include <spdlog/spdlog.h>
 
-/* Build v.0.0.22 from 25.11.2021 */
-const uint32_t PATCH = 22;
+/* Build v.0.0.23 from 17.02.2021 */
+const uint32_t PATCH = 23;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -39,18 +39,13 @@ int main()
 #else 
 
     const std::string shello = "Hello. Application version is %1%.%2%.%3%\n";
-    /* for corrent output boost error messages */
-    // SetConsoleOutputCP(1251);
     spdlog::info(boost::str(boost::format(shello) % MAJOR % MINOR % PATCH));
 
     try
     {
         /* separate thread to start tcp server */
         boost::asio::io_service ios;
-
         boost::thread_group threads;
-        // boost::thread_pool pool(boost::thread::hardware_concurrency());
-
         boost::asio::io_context::work work(ios);
         boost::asio::signal_set signals(work.get_io_context(), SIGINT, SIGTERM);
 

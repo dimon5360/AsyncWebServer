@@ -23,6 +23,10 @@
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
 
+#include "../config/config.h"
+
+#include <boost/property_tree/json_parser.hpp>
+
 class MongoProcessor {
 
     enum class ConfigClass {
@@ -30,26 +34,25 @@ class MongoProcessor {
         release,
     };
 
-    // private fields
-    static constexpr ConfigClass config_ = ConfigClass::release; 
-    std::string connectingString_;  
+    static constexpr ConfigClass config_ = ConfigClass::debug; 
 
+    mutable std::string connectingConfig_, connectingString_;  
+    mutable std::shared_ptr<IConfig> dbcfg;
     mutable std::shared_ptr<mongocxx::client> mongoclient_;
 
-    // private member-functions
-    void InitializeConnection() const noexcept;
-        
-    // static private member-functions
-    static void Log(std::string&& log);
-
+    static void MongoLog(std::string&& logMsg);
+    static void MongoError(std::string&& errMsg);
+    
+    void Insert(std::unique_ptr<mongocxx::collection> collection, const std::string& json) noexcept;
+    void Insert(std::unique_ptr<mongocxx::collection> collection, const boost::property_tree::ptree& tree) noexcept;
+    void InitializeConnection(const std::string config) noexcept;
+    
 public:
 
-    void testInsert(std::string&& dbs, std::string&& table) const noexcept;
-    void testRequest(std::string&& dbs, std::string&& table) const noexcept;
 
     MongoProcessor() = delete;
-    MongoProcessor(std::string&& connectingString);
-    MongoProcessor(const std::string& connectingString);
-    
+    MongoProcessor(std::string&& connectingConfig);
     ~MongoProcessor();
+
+    void InsertNewMessage(std::string&& msg) noexcept;
 };

@@ -103,8 +103,8 @@ void DataProcess::HandleInOutMessages() const noexcept {
 }
 
 void DataProcess::ProcessUserMessage(const boost::property_tree::ptree& tree) const noexcept {
-    auto userId = jsonHandler->ParseTreeParam<std::string>(tree, std::move("user id"));
-    auto userMsg = jsonHandler->ParseTreeParam<std::string>(tree, std::move("message"));
+    auto userId = jsonHandler->ParseTreeParam<std::string>(tree, "user id");
+    auto userMsg = jsonHandler->ParseTreeParam<std::string>(tree, "message");
     auto id = boost::lexical_cast<MessageBroker::T>(userId);
     msgBroker->PushMessage(id, userMsg);
 }
