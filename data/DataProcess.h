@@ -25,22 +25,34 @@
 
  /* local C++ headers */
 #include "../conn/MessageBroker.h"
+#include "../db/MongoProcess.h"
 #include "../format/json.h"
 
 class DataProcess {   
+
+
+    const uint32_t delay = 10; // ms
+    mutable std::queue<std::string> ioq_; // in and out queue for messages
+    mutable std::shared_mutex mutex_;
+    mutable std::atomic_int16_t msgInQueue;
+
+    mutable std::unique_ptr<MessageBroker> msgBroker;
+    std::unique_ptr<MongoProcessor> mongoUserMessagesStorage;
+    std::unique_ptr<JsonHandler> jsonHandler;
 
 public:
 
     void StartDataProcessor();
     void PushNewMessage(std::string& msg) const noexcept;
     std::string GetUsersListInJson(std::string& usersList, const size_t usersCount);
-    std::string ConstructMessage(const MessageBroker::T& id, std::string& message);
+    std::string ConstructMessage(const MessageBroker::T& id, std::string& message, JsonHandler::json_req_t&& json_msg_type);
     
     DataProcess()
     {
         std::cout << "Construct Data processor class\n";
         msgBroker = std::make_unique<MessageBroker>();
         jsonHandler = std::make_unique<JsonHandler>();
+        mongoUserMessagesStorage = std::make_unique<MongoProcessor>("mongo.ini");
         StartDataProcessor();
     }
 
@@ -59,19 +71,6 @@ private:
     void ProcessNewMessage() const noexcept;
     void HandleInOutMessages() const noexcept;
     std::string PullNewMessage() const noexcept;
-
-    const uint32_t delay = 10; // ms
-    mutable std::unique_ptr<MessageBroker> msgBroker;
-    mutable std::queue<std::string> ioq_; // in and out queue for messages
-    mutable std::shared_mutex mutex_;
-    mutable std::atomic_int16_t msgInQueue;
-
-    std::unique_ptr<JsonHandler> jsonHandler;
-
-    const std::string tech_msg_header{ "user id=" };
-    const std::string tech_pub_key_msg{ "key=" };
-    const std::string tech_req_msg{ "message=" };
-    const std::string tech_resp_msg{ "summ=" };
 };
 
 extern DataProcess dataProcessor;

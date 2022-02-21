@@ -49,6 +49,5 @@ public:
     bool IsThereSuchClient(const T& id) const noexcept;
     void DisconnectAllClients() const noexcept;
     const size_t GetUsersAmount() const noexcept;
-    void SendoutUsersListToUser(const uint32_t id) const noexcept;
-    void SendoutUsersList() const noexcept;
+    void SendUsersListToUser(const T& id) const noexcept;
 };

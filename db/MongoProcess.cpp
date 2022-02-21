@@ -9,6 +9,7 @@
 #include "MongoProcess.h"
 
 #include "../format/json.h"
+#include "../log/Logger.h"
 
 #include <boost/date_time.hpp>
 #include <boost/format.hpp>
@@ -22,23 +23,21 @@ using bsoncxx::builder::stream::finalize;
 using bsoncxx::builder::stream::open_array;
 using bsoncxx::builder::stream::open_document;
 
-void MongoProcessor::InitializeConnection(const std::string config) noexcept {
+void MongoProcessor::InitializeConnection(std::string&& config) noexcept {
     mongocxx::instance instance{};
     try
     {
         dbcfg = std::make_shared<IConfig>();
-        dbcfg->Open("mongo.ini");
+        dbcfg->Open(std::move(config));
         connectingString_ = dbcfg->GetConfigValueByKey("connstr");
     } catch (std::exception const& ex) {
         MongoError(boost::str(boost::format("%1% %2%") % "Initialize MongDB connection error: " % ex.what()));
     }
 }
 
-MongoProcessor::MongoProcessor(std::string&& connectingConfig) :
-    connectingConfig_(std::move(connectingConfig))
-{
+MongoProcessor::MongoProcessor(std::string&& connectingConfig) {
     MongoLog("Construct MongoProcess class\n");  
-    InitializeConnection(connectingConfig_);
+    InitializeConnection(std::move(connectingConfig));
 }
 
 MongoProcessor::~MongoProcessor() {
@@ -64,8 +63,8 @@ void MongoProcessor::Insert(std::unique_ptr<mongocxx::collection> collection, co
     std::unique_ptr<JsonHandler> handle = std::make_unique<JsonHandler>();
     auto tree = handle->ConstructTree(json);
 
-    auto userId = handle->ParseTreeParam<std::string>(tree, "user id");
-    auto message = handle->ParseTreeParam<std::string>(tree, "message");
+    auto userId = handle->ParseTreeParam<std::string>(tree, JsonHandler::dst_user_msg_token);
+    auto message = handle->ParseTreeParam<std::string>(tree, JsonHandler::user_msg_token);
 
     bsoncxx::document::value doc_value = builder 
     << "user_id" << userId 
@@ -101,24 +100,12 @@ void MongoProcessor::Insert(std::unique_ptr<mongocxx::collection> collection, co
     }
 }
 
-// void MongoProcessor::testRequest(std::string&& dbs, std::string&& table) noexcept {
-//     mongocxx::client client{mongocxx::uri{connectingString_}};
-//     mongocxx::database db = client[dbs];
-//     auto collection = std::make_unique<mongocxx::collection>(db[table]);
-//     bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result =
-//     collection->find_one(document{} << "i" << 10 << finalize);
-//     if(maybe_result) {
-//         std::cout << bsoncxx::to_json(*maybe_result) << "\n";
-//     }
-// }
-
 void MongoProcessor::MongoLog(std::string&& logMsg) {
     if(MongoProcessor::config_ == MongoProcessor::ConfigClass::debug) {
-        spdlog::info(logMsg);
+        ConsoleLogger::Info(std::move(logMsg));
     }    
 }
 
 void MongoProcessor::MongoError(std::string&& errMsg) {
-    spdlog::error(errMsg);
-    // TODO: add file logger record
+    ConsoleLogger::Error(std::move(errMsg));
 }

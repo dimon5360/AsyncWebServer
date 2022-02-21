@@ -74,7 +74,7 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
             socket_.async_write_some(boost::asio::buffer(resp),
                 [&](const boost::system::error_code& error,
                     std::size_t bytes_transferred) {
-                        connMan_.SendUsersListToEveryone(); // TODO: send users list only to concrete user which just connected
+                        connMan_.SendUsersListToUser(id_); // TODO: send users list only to concrete user which just connected
                         StartRead();
                 });
         }

@@ -28,6 +28,13 @@ public:
     static std::string usersListJsonHeader;
     static std::string usersCountJsonField;
     static std::string usersListJsonField;
+    
+    static std::string msg_identificator_token;
+    static std::string dst_user_msg_token;
+    static std::string src_user_msg_token;
+    static std::string user_msg_token;
+    static std::string msg_timestamp_token;
+    static std::string msg_hash_token;  
 
 private:
 
@@ -43,10 +50,9 @@ public:
     void HandleRequest(std::string&& json, const json_req_t& type) noexcept;
 
     template<typename T>
-    T ParseJsonParam(const std::string& jsonReq, std::string&& sparam);
-
+    T ParseJsonParam(const std::string& jsonReq, const std::string& param);
     template<typename T>
-    T ParseTreeParam(const boost::property_tree::ptree& jsonTree, std::string&& sparam);
+    T ParseTreeParam(const boost::property_tree::ptree& jsonTree, const std::string& param);
 
     std::string ConvertToString(const boost::property_tree::ptree& jsonTree) const noexcept;
 

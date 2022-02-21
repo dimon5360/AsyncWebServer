@@ -26,39 +26,88 @@ using testcase_t = enum class Testcase {
     test_DHCryptoAlg,
     test_JsonParser,
     test_MongoDbConnect,
+    test_AsyncTask,
 };
 
-/* tests declarations --------------------------------------- */
-
-#if TEST_RSA_CRYPTO
-static int test_rsa_enc_dec();
-#endif /* USER_RSA_CRYPTO */
-
-#if TEST_DH_CRYPTO
-static int test_dh_alg();
-#endif /* USER_DH_CRYPTO */
-
-#if TEST_PARSE_JSON
-static void test_parse_json();
-#endif /* TEST_PARSE_JSON */
-
-
-static void tests_start(testcase_t testcase);
-
-
-/***************************************************************
- *  @brief  Function calls defined unit tests
- *  @return Unit tests code result
- ***************************************************************/
+static void tests_start(testcase_t testcase, unittest_code_t& ret);
 
 unittest_code_t init_unit_tests() {
 
     unittest_code_t ret = UnitestCode::unittest_ok;
-    tests_start(Testcase::test_MongoDbConnect);
+    tests_start(Testcase::test_AsyncTask, ret);
     return ret;
 }
 
 /* tests implementations ---------------------------------- */
+
+#if TEST_RSA_CRYPTO
+static int test_rsa_enc_dec();
+#endif // TEST_RSA_CRYPTO
+#if TEST_DH_CRYPTO
+static int test_dh_alg();
+#endif // TEST_DH_CRYPTO
+#if TEST_PARSE_JSON
+static void test_parse_json();
+#endif // TEST_PARSE_JSON
+#if TEST_MONGO_DB_CONNECT
+static int test_mongo_connect();
+#endif // TEST_MONGO_DB_CONNECT
+#if TEST_ASYNC_TASK
+static int test_async_task();
+#endif // TEST_ASYNC_TASK
+
+/* ----------------------------------- */
+static void tests_start(testcase_t testcase, unittest_code_t& ret) {
+
+    switch (testcase) {
+#if TEST_RSA_CRYPTO
+    case Testcase::test_RSACryptoAlg: ret = (unittest_code_t)test_rsa_enc_dec(); break;
+#elif TEST_DH_CRYPTO
+    case Testcase::test_DHCryptoAlg: ret = (unittest_code_t)test_dh_alg(); break;
+#elif TEST_PARSE_JSON
+    case Testcase::test_JsonParser: ret = (unittest_code_t)test_parse_json(); break;
+#elif TEST_MONGO_DB_CONNECT
+    case Testcase::test_MongoDbConnect: ret = (unittest_code_t)test_mongo_connect(); break;
+#elif TEST_ASYNC_TASK
+    case Testcase::test_AsyncTask: ret = (unittest_code_t)test_async_task(); break;
+#endif 
+    default: spdlog::error("Undefined test case");
+    }
+}
+
+#ifdef TEST_ASYNC_TASK
+#include <iostream>     // std::cout
+#include <future>       // std::packaged_task, std::future
+#include <chrono>       // std::chrono::seconds
+#include <thread>       // std::thread, std::this_thread::sleep_for
+
+// count down taking a second for each value:
+int countdown (int from, int to) {
+  for (int i=from; i!=to; --i) {
+    std::cout << i << '\n';
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+  std::cout << "Lift off!\n";
+  return from-to;
+}
+
+static int test_async_task() {
+
+  std::packaged_task<int(int,int)> tsk (countdown);   // set up packaged_task
+  std::future<int> ret = tsk.get_future();            // get future
+
+  std::thread th (std::move(tsk),10,0);   // spawn thread to count down from 10 to 0
+
+  // ...
+
+  int value = ret.get();                  // wait for the task to finish and get result
+
+  std::cout << "The countdown lasted for " << value << " seconds.\n";
+
+  th.join();
+    return 0;
+}
+#endif // TEST_ASYNC_TASK
 
 #ifdef TEST_MONGO_DB_CONNECT
 
@@ -108,7 +157,7 @@ static int test_rsa_enc_dec() {
 
     return 0;
 }
-#endif /* USER_RSA_CRYPTO */
+#endif // USER_RSA_CRYPTO
 
 #if TEST_DH_CRYPTO
 
@@ -130,49 +179,7 @@ static int test_dh_alg() {
     std::cout << "Client common secret key: " << common_secret_key << std::endl;
     return 0;
 }
-#endif /* USER_DH_CRYPTO */
-
-#if TEST_JTHREAD
-#include <coroutine>
-#include <iostream>
-#include <stdexcept>
-#include <thread>
-
-auto switch_to_new_thread(std::jthread& out) {
-    struct awaitable {
-        std::jthread* p_out;
-        bool await_ready() { return false; }
-        void await_suspend(std::coroutine_handle<> h) {
-            std::jthread& out = *p_out;
-            if (out.joinable())
-                throw std::runtime_error("Output jthread parameter not empty");
-            out = std::jthread([h] { h.resume(); });
-            // Potential undefined behavior: accessing potentially destroyed *this
-            // std::cout << "New thread ID: " << p_out->get_id() << '\n';
-            std::cout << "New thread ID: " << out.get_id() << '\n'; // this is OK
-        }
-        void await_resume() {}
-    };
-    return awaitable{ &out };
-}
-
-struct task {
-    struct promise_type {
-        task get_return_object() { return {}; }
-        std::suspend_never initial_suspend() { return {}; }
-        std::suspend_never final_suspend() noexcept { return {}; }
-        void return_void() {}
-        void unhandled_exception() {}
-    };
-};
-
-task resuming_on_new_thread(std::jthread& out) {
-    std::cout << "Coroutine started on thread: " << std::this_thread::get_id() << '\n';
-    co_await switch_to_new_thread(out);
-    // awaiter destroyed here
-    std::cout << "Coroutine resumed on thread: " << std::this_thread::get_id() << '\n';
-}
-#endif /* USE_JTHREAD */
+#endif // USER_DH_CRYPTO
 
 #if TEST_PARSE_JSON
 #include "../utils/json.h"
@@ -184,29 +191,5 @@ static void test_parse_json() {
         \"username\" : \"test\", \"password\" : \"testPASS2#$\", \"active\" : true }\r\n",
         JsonParser::json_req_t::authentication_request);
 }
-#endif /* TEST_PARSE_JSON */
-
-/* ----------------------------------- */
-static void tests_start(testcase_t testcase) {
-
-    switch (testcase) {
-
-#if TEST_RSA_CRYPTO
-    case Testcase::test_RSACryptoAlg: test_rsa_enc_dec(); break;
-#endif /* USER_RSA_CRYPTO */
-
-#if TEST_DH_CRYPTO
-    case Testcase::test_DHCryptoAlg: test_dh_alg(); break;
-#endif /* USER_DH_CRYPTO */
-
-#if TEST_PARSE_JSON
-    case Testcase::test_JsonParser: test_parse_json(); break;
-#endif /* TEST_PARSE_JSON */
-
-    case Testcase::test_MongoDbConnect: test_mongo_connect(); break;
-
-    default: spdlog::error("Undefined test case");
-    }
-}
-
-#endif /* UNIT_TEST */
+#endif // TEST_PARSE_JSON
+#endif // UNIT_TEST

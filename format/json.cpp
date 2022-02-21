@@ -4,31 +4,51 @@
  *
  *  @author     Kalmykov Dmitry
  *  @date       19.08.2021
- *  @modified   03.09.2021
  *  @version    0.2
  */
 
- /* local C++ headers */
 #include "json.h"
 #include "../log/Logger.h"
 
 #include <fstream>
 #include <iostream>
 
-/* external C++ libs headers -------------------------------- */
-/* boost C++ lib headers */
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/format.hpp>
 #include <boost/iostreams/stream.hpp>
-/* spdlog C++ lib */
+
 #include <spdlog/spdlog.h>
 
 std::string JsonHandler::usersListJsonHeader = "message_identifier";
 std::string JsonHandler::usersCountJsonField = "users_amount";
 std::string JsonHandler::usersListJsonField = "users_list";
 
-/* public method implementation ----------------------------- */
+std::string JsonHandler::msg_identificator_token{ "message_identifier" };
+std::string JsonHandler::dst_user_msg_token{ "dst_user_id" };
+std::string JsonHandler::src_user_msg_token{ "src_user_id" };
+std::string JsonHandler::user_msg_token{ "user_message" };
+std::string JsonHandler::msg_timestamp_token{ "message_timestamp" };
+std::string JsonHandler::msg_hash_token{ "message_hash" };
+
+/* structure of users list response message
+{
+    "message_identifier" : users_list_message // details (JsonHandler::json_req_t)
+    "users_amount" : 1 ... N, // size of comtainer in UsersPool class (size_t)
+    "users_list" : [ "user1_id", "user2_id", ... "userN_id" ],
+}
+*/
+
+/* structure of different request messages 
+{
+    "message_identifier" : authentication_message | user_message | group_users_message
+    "src_user_id" : async connection ID
+    "dst_user_id" : [] async connection IDs (optional, depending from message type)
+    "user_message" : " ... ",
+    "message_timestamp" : system datetime
+    "message_hash" : sha512 | sha256
+}
+*/
 
 void JsonHandler::PushRequest(std::string&& inReq) const noexcept {
     std::unique_lock lk(mtx_);
@@ -98,7 +118,6 @@ boost::property_tree::ptree JsonHandler::ConstructTree(const std::string& jsonSt
 
 void JsonHandler::PrintTree(boost::property_tree::ptree& tree) {
 
-    /* print separate parameters */
     std::string msg;
 
     msg = tree.get<std::string>("usermail");
@@ -117,18 +136,15 @@ void JsonHandler::PrintTree(boost::property_tree::ptree& tree) {
 }
 
 template<typename T>
-T JsonHandler::ParseJsonParam(const std::string& jsonReq, std::string&& sparam) {
+T JsonHandler::ParseJsonParam(const std::string& jsonReq, const std::string& param) {
     auto tree = ConstructTree(jsonReq);
-    auto param = tree.get<T>(std::move(sparam));
-    return param;
+    return tree.get<T>(param);
 }
 
 template<typename T>
-T JsonHandler::ParseTreeParam(const boost::property_tree::ptree& jsonTree, std::string&& sparam) {
-    auto param = jsonTree.get<T>(std::move(sparam));
-    return param;
+T JsonHandler::ParseTreeParam(const boost::property_tree::ptree& jsonTree, const std::string& param) {
+    return jsonTree.get<T>(param);
 }
-
 
 std::string JsonHandler::ConvertToString(const boost::property_tree::ptree& jsonTree) const noexcept {
 

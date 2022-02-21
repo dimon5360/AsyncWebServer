@@ -36,7 +36,7 @@ class MongoProcessor {
 
     static constexpr ConfigClass config_ = ConfigClass::debug; 
 
-    mutable std::string connectingConfig_, connectingString_;  
+    mutable std::string connectingString_;  
     mutable std::shared_ptr<IConfig> dbcfg;
     mutable std::shared_ptr<mongocxx::client> mongoclient_;
 
@@ -45,7 +45,7 @@ class MongoProcessor {
     
     void Insert(std::unique_ptr<mongocxx::collection> collection, const std::string& json) noexcept;
     void Insert(std::unique_ptr<mongocxx::collection> collection, const boost::property_tree::ptree& tree) noexcept;
-    void InitializeConnection(const std::string config) noexcept;
+    void InitializeConnection(std::string&& config) noexcept;
     
 public:
 

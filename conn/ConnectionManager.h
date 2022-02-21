@@ -147,27 +147,16 @@ public:
         std::cout << "All connections are closed\n";
     }
 
-    void SendUsersListToUser(const T id) 
+    void SendUsersListToUser(const T& id) 
     {
-        users->SendoutUsersListToUser(id);
-    }
-
-    void SendUsersListToEveryone() 
-    {
-        users->SendoutUsersList();
+        users->SendUsersListToUser(id);
     }
 
 protected:
 
     void ResendUserMessage(const T& connId, const std::string& user_msg) const {
         try {
-            if (connId == UsersPool::BROADCAST_ID) {
-                for (auto it = users->begin(); it != users->end(); ++it) {
-                    users->GetClient(it->first)->ResendMessage(user_msg);
-                    std::this_thread::sleep_for(std::chrono::microseconds(20));
-                }
-            }
-            else if (Contains(connId)) {
+            if (Contains(connId)) {
                 users->GetClient(connId)->ResendMessage(user_msg);
                 std::cout << "Message for user #" << connId << " sended\n";
             }

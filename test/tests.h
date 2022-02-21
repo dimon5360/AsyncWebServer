@@ -16,18 +16,11 @@ using unittest_code_t = enum class UnitestCode {
     unittest_ok = 0,
 };
 
-/* RSA crypto alg tests */
 #define TEST_RSA_CRYPTO         0
-/* Diffie-Hellman crypto alg tests */
 #define TEST_DH_CRYPTO          0
-/* jthread tests */
-#define TEST_JTHREAD            0
-/* coroutines tests */
-#define TEST_COROUTINES         0
-/* json parser tests */
 #define TEST_PARSE_JSON         0
-
-#define TEST_MONGO_DB_CONNECT   1
+#define TEST_ASYNC_TASK         1
+#define TEST_MONGO_DB_CONNECT   0
 
 extern unittest_code_t init_unit_tests();
 

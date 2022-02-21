@@ -18,7 +18,7 @@ class MessageBroker {
 public:
     using record_t = std::pair<T, const std::string>;
 
-    void PushMessage(const T& connId, const std::string& msg) {
+    void PushMessage(const T& connId, std::string&& msg) {
         std::unique_lock lk(m_);
         msgQueue.emplace(std::make_pair(connId, msg));
         msgNum++;
