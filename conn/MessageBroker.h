@@ -4,19 +4,42 @@
  */
 #pragma once
 
- /* local C++ headers */
 #include "ConnectionManager.h"
 
-/* std C++ lib headers */
 #include <shared_mutex>
 #include <queue>
+#include <memory>
+
+#include <spdlog/spdlog.h>
 
 class MessageBroker {
     friend class DataProcess;
-    using T = AsyncTcpConnection::id_t;
+
+    static std::shared_ptr<MessageBroker> mb_;
 
 public:
+    using T = AsyncTcpConnection::id_t;
+    
     using record_t = std::pair<T, const std::string>;
+
+    // to avoid copying and creating any one instance
+    MessageBroker(const MessageBroker& mb) = delete;
+    MessageBroker& operator=(const MessageBroker& md) = delete;
+
+    MessageBroker() {
+        spdlog::info("Construct MessageBroker class");
+    }
+
+    ~MessageBroker() {
+        spdlog::info("Destruct MessageBroker class");
+    }
+
+    static const std::shared_ptr<MessageBroker>& GetInstance() {
+        if(!mb_) {
+            mb_ = std::make_shared<MessageBroker>();
+        }
+        return mb_;
+    }
 
     void PushMessage(const T& connId, std::string&& msg) {
         std::unique_lock lk(m_);
@@ -45,5 +68,3 @@ private:
     std::shared_mutex m_;
     std::atomic_size_t msgNum;
 };
-
-extern MessageBroker msgBroker;

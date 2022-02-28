@@ -62,9 +62,9 @@ void UsersPool::SendUsersListToUser(const T& id) const noexcept
     {
         std::unique_lock lk(mutex_);
         std::string users{PrepareUsersIdsList()};
-        std::string json = dataProcessor.GetUsersListInJson(users, clients.size());
-        std::string message = dataProcessor.ConstructMessage(id, json, JsonHandler::json_req_t::users_list_message);
-        dataProcessor.PushNewMessage(message);
+        std::string json = DataProcess::GetInstance()->GetUsersListInJson(users, clients.size());
+        std::string message = DataProcess::GetInstance()->ConstructMessage(id, json, JsonHandler::json_req_t::users_list_message);
+        DataProcess::GetInstance()->PushNewMessage(id, std::move(message));
     }
     catch (std::exception &ex)
     {

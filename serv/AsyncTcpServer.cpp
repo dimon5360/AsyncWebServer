@@ -3,7 +3,6 @@
  *  @brief      Async TCP server class implementation
  *  @author     Kalmykov Dmitry
  *  @date       28.04.2021
- *  @modified   19.08.2021
  *  @version    1.0
  */
 
@@ -27,29 +26,24 @@
 #include "../conn/ConnectionManager.h"
 #include "../conn/AsyncClient.h"
 
-ConnectionManager connMan_;
-
 void AsyncTcpServer::HandleAccept(AsyncClient::client_ptr& client,
     const boost::system::error_code& error)
 {
-    if (!error)
-    {
+    if (!error) {
         ConsoleLogger::Info("New connection accepted. Start reading data.\n");
-        connMan_.AddConnection(std::ref(client));
+        ConnectionManager::GetInstance()->AddConnection(std::ref(client));
         client->HandleAccept();
         StartAccept();
-    }
-    else {
+    } else {
         client->DisconnectClient();
     }
 }
 
 void AsyncTcpServer::StartAccept() {
         
-    auto client = connMan_.CreateNewClient(io_service, context_);
+    auto client = ConnectionManager::GetInstance()->CreateNewClient(io_service, context_);
 
-    std::cout << "Current thread ID = " << std::this_thread::get_id();
-    ConsoleLogger::Info(boost::str(boost::format("Current thread ID = %1% \n") %
+    ConsoleLogger::Debug(boost::str(boost::format("Current thread ID = %1% \n") %
         std::this_thread::get_id()));
 
     acceptor_.async_accept(client->socket(),
@@ -62,7 +56,7 @@ AsyncTcpServer::AsyncTcpServer(boost::asio::io_service&& io_service, uint16_t po
     acceptor_(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
     context_(boost::asio::ssl::context::tlsv13)
 {
-    ConsoleLogger::Info("Construct AsyncTcpServer class");
+    ConsoleLogger::Debug("Construct AsyncTcpServer class");
 
     ConsoleLogger::Info(boost::str(boost::format("Start listening to %1% port") % port));
 
@@ -85,15 +79,16 @@ void AsyncTcpServer::StartTcpServer(boost::asio::io_service &ios) {
         scfg->Open("server.ini");
         auto sport = scfg->GetConfigValueByKey("port");
         uint16_t port = std::atoi(sport.c_str());
-        std::cout << "Start TCP server...\n";
+        ConsoleLogger::Info("Start TCP server...");
+        
         std::make_unique<AsyncTcpServer>(std::move(ios), port);
     }
     catch (std::exception& ex) {
-        ConsoleLogger::Info(boost::str(boost::format("StartTcpServer exception: %1%\n") % ex.what()));
+        ConsoleLogger::Error(boost::str(boost::format("StartTcpServer exception: %1%\n") % ex.what()));
     }
 }
 
 void AsyncTcpServer::StopTcpServer(boost::asio::io_service& ios) {
-    connMan_.DeactivateManager();
-    connMan_.CloseAllConnections();
+    ConnectionManager::GetInstance()->DeactivateManager();
+    ConnectionManager::GetInstance()->CloseAllConnections();
 }

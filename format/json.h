@@ -3,15 +3,12 @@
  *  @brief      JSON handler class declaration
  *  @author     Kalmykov Dmitry
  *  @date       19.08.2021
- *  @modified   03.09.2021
  *  @version    0.2
  */
 #pragma once
 
- /* boost C++ lib headers */
 #include <boost/property_tree/ptree.hpp>
 
-/* std �++ lib headers */
 #include <queue>
 #include <shared_mutex>
 
@@ -25,10 +22,6 @@ public:
         group_users_message,
     };
 
-    static std::string usersListJsonHeader;
-    static std::string usersCountJsonField;
-    static std::string usersListJsonField;
-    
     static std::string msg_identificator_token;
     static std::string dst_user_msg_token;
     static std::string src_user_msg_token;
@@ -36,18 +29,19 @@ public:
     static std::string msg_timestamp_token;
     static std::string msg_hash_token;  
 
+    static std::string users_amount_token;
+    static std::string users_list_token;
+
+    static std::string auth_status_token;
+
 private:
 
     void PrintTree(boost::property_tree::ptree& tree);
-    void HandleAuthJson(std::string&& authJson) noexcept;
 
 public:
+
     boost::property_tree::ptree ConstructTree(const std::string& jsonString);
-
-    void PushRequest(std::string&& inReq) const noexcept;
-    std::string PullRequest() const noexcept;
-
-    void HandleRequest(std::string&& json, const json_req_t& type) noexcept;
+    boost::property_tree::ptree ConstructTree(std::string&& jsonString);
 
     template<typename T>
     T ParseJsonParam(const std::string& jsonReq, const std::string& param);

@@ -4,7 +4,6 @@
  */
 #pragma once
 
-/* std C++ lib headers */
 #include <iostream>
 #include <unordered_set>
 #include <unordered_map>
@@ -13,7 +12,6 @@
 #include <algorithm>
 #include <cstdint>
 
-/* boost C++ lib headers */
 #include <boost/format.hpp>
 #include <boost/asio.hpp> 
 #include <boost/array.hpp> 
@@ -28,6 +26,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/write.hpp>
+
+#include "../log/Logger.h"
 
 class AsyncTcpSession {
     
@@ -63,14 +63,15 @@ public:
 
     AsyncTcpConnection(boost::asio::io_service& io_service,
         boost::asio::ssl::context& context_, const id_t& id)
-        : socket_(io_service, context_),
-        id_(id)
+        : socket_(io_service, context_), id_(id)
     {
-        std::cout << "Construct AsyncTcpConnection class for user ID = " << id_ << "\n";
+        ConsoleLogger::Debug(boost::str(boost::format("%1%%2%") % 
+                "Construct AsyncTcpConnection class for user ID = " % id_));
     }
 
     ~AsyncTcpConnection() {
-        std::cout << "Destruct AsyncTcpConnection class for user ID = " << id_ << "\n";
+        ConsoleLogger::Debug(boost::str(boost::format("%1%%2%") % 
+                "Destruct AsyncTcpConnection class for user ID = " % id_ ));
     }
 
     void StartWriteMessage(const std::string& msg);

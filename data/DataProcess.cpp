@@ -7,18 +7,16 @@
  *  @version    0.1
  */
 
- /* std C++ lib headers */
  #include "string.h"
 
- /* boost C++ lib headers */
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
- /* local C++ headers */
 #include "DataProcess.h"
-#include "../log/Logger.h"
 #include "../conn/ConnectionManager.h"
+#include "../conn/MessageBroker.h"
 #include "../conn/AsyncClient.h"
+#include "../format/json.h"
 
 void DataProcess::StartDataProcessor() {
     std::thread{ [&]() {
@@ -26,11 +24,11 @@ void DataProcess::StartDataProcessor() {
     }}.detach();
 }
 
-void DataProcess::PushNewMessage(std::string& msg) const noexcept {
+void DataProcess::PushNewMessage(const MessageBroker::T id, std::string&& msg) const noexcept {
 
     try {
         std::unique_lock lk(mutex_);
-        ioq_.push(msg);
+        ioq_.push(std::make_pair<const MessageBroker::T, std::string>(std::move(id), std::move(msg)));
         msgInQueue++;
     }
     catch (std::exception& ex) {
@@ -38,16 +36,26 @@ void DataProcess::PushNewMessage(std::string& msg) const noexcept {
     }
 }
 
-std::string DataProcess::ConstructMessage(const MessageBroker::T& id, std::string& message, JsonHandler::json_req_t&& json_msg_type) {
+std::string DataProcess::ConstructMessage(const MessageBroker::T& id, const std::string& message, JsonHandler::json_req_t&& json_msg_type) {
 
     namespace pt = boost::property_tree;
     pt::ptree ptree;
 
-    ptree.put(JsonHandler::usersListJsonHeader, static_cast<uint32_t>(json_msg_type));
+    ptree.put(JsonHandler::msg_identificator_token, static_cast<uint32_t>(json_msg_type));
     ptree.put(JsonHandler::dst_user_msg_token, id);
     ptree.put(JsonHandler::user_msg_token, message);
-    std::ostringstream oss;
-    boost::property_tree::json_parser::write_json(oss, ptree);
+    std::string res = jsonHandler->ConvertToString(ptree);
+    return res;
+}
+
+std::string DataProcess::ConstructMessage(const MessageBroker::T& id, std::string&& message, JsonHandler::json_req_t&& json_msg_type) {
+
+    namespace pt = boost::property_tree;
+    pt::ptree ptree;
+
+    ptree.put(JsonHandler::msg_identificator_token, static_cast<uint32_t>(json_msg_type));
+    ptree.put(JsonHandler::dst_user_msg_token, id);
+    ptree.put(JsonHandler::user_msg_token, std::move(message));
     std::string res = jsonHandler->ConvertToString(ptree);
     return res;
 }
@@ -57,8 +65,8 @@ std::string DataProcess::GetUsersListInJson(std::string& usersList, const size_t
     namespace pt = boost::property_tree;
     pt::ptree ptree;
 
-    ptree.put(JsonHandler::usersCountJsonField, usersCount);
-    ptree.put(JsonHandler::usersListJsonField, usersList);
+    ptree.put(JsonHandler::users_amount_token, usersCount);
+    ptree.put(JsonHandler::users_list_token, usersList);
 
     std::ostringstream oss;
     boost::property_tree::json_parser::write_json(oss, ptree);
@@ -67,17 +75,20 @@ std::string DataProcess::GetUsersListInJson(std::string& usersList, const size_t
 }
 
 void DataProcess::HandleInOutMessages() const noexcept {
-    while (connMan_.ManagerIsActive()) {
+    
+    while (ConnectionManager::GetInstance()->ManagerIsActive()) {
         if (msgInQueue > 0) {
             ProcessNewMessage();
         }
-        if (!msgBroker->IsQueueEmpty()) {
+        if (!MessageBroker::GetInstance()->IsQueueEmpty()) {
             SendLastMessage();
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(delay));
     }
 }
 
+
+// @brief correct logic, need to retransmit received message to another user (also keep in db)
 void DataProcess::ProcessUserMessage(const boost::property_tree::ptree& tree) const noexcept {
 
     try {
@@ -86,7 +97,7 @@ void DataProcess::ProcessUserMessage(const boost::property_tree::ptree& tree) co
         std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::dst_user_msg_token);
         std::string userMsg = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::user_msg_token);
         uint32_t id = boost::lexical_cast<MessageBroker::T>(userId);
-        msgBroker->PushMessage(id, std::move(userMsg));
+        MessageBroker::GetInstance()->PushMessage(id, std::move(userMsg));
     }
     catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
@@ -98,22 +109,48 @@ void DataProcess::ProcessGroupMessage(const boost::property_tree::ptree& tree) c
     (void)tree;
 }
 
-void DataProcess::ProcessAuthMessage(const boost::property_tree::ptree& tree) const noexcept {
-    // TODO: process user authentication data
-    // here must send request to DB service to validate user data
+// @brief correct logic, need to implement processing and validating user personal data 
+void DataProcess::ProcessAuthMessage(const MessageBroker::T& id, const boost::property_tree::ptree& tree) const noexcept {
+
+    try
+    {
+        // TODO: process user authentication data
+
+        // std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::dst_user_msg_token);
+        // std::string timestamp = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::msg_timestamp_token);
+    
+        // here must send request to DB service to validate user data
+        namespace pt = boost::property_tree;
+        pt::ptree ptree;
+
+        ptree.put(JsonHandler::msg_identificator_token, static_cast<uint32_t>(JsonHandler::json_req_t::authentication_message));
+        ptree.put(JsonHandler::dst_user_msg_token, id);
+        ptree.put(JsonHandler::auth_status_token, std::move("approved"));
+        ptree.put(JsonHandler::user_msg_token, std::move(""));
+        
+        std::string outmsg = jsonHandler->ConvertToString(ptree);
+
+        MessageBroker::GetInstance()->PushMessage(id, std::move(outmsg));
+    }
+    catch (std::exception &ex)
+    {
+        ConsoleLogger::Error(ex.what());
+    }
 }
 
+// @brief need to process request and transmit the user list
 void DataProcess::ProcessUsersListRequest(const boost::property_tree::ptree& tree) const noexcept {
 
     try {
         mongoUserMessagesStorage->InsertNewMessage(jsonHandler->ConvertToString(tree));
 
-        std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::dst_user_msg_token);
-        std::string userMsg = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::user_msg_token);
+        std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::src_user_msg_token);
+        std::string datetime = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::msg_timestamp_token);
+        std::string hash = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::msg_hash_token);
         uint32_t id = boost::lexical_cast<MessageBroker::T>(userId);
-        msgBroker->PushMessage(id, std::move(userMsg));
-    }
-    catch (std::exception& ex) {
+        ConnectionManager::GetInstance()->SendUsersListToUser(id); 
+
+    } catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
     }
 }
@@ -121,24 +158,25 @@ void DataProcess::ProcessUsersListRequest(const boost::property_tree::ptree& tre
 void DataProcess::ProcessNewMessage() const noexcept {
 
     try {
-        std::string msg{ PullNewMessage() };
+        decltype(auto) msg{ PullNewMessage() };
 
         namespace pt = boost::property_tree;
-        pt::ptree tree = jsonHandler->ConstructTree(msg);
+        pt::ptree tree = jsonHandler->ConstructTree(msg.second);
 
-        auto identifer = boost::lexical_cast<uint32_t>(jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::usersListJsonHeader));
+        auto identifer = boost::lexical_cast<uint32_t>(jsonHandler->ParseTreeParam<std::string>(tree, 
+                                                                JsonHandler::msg_identificator_token));
 
         switch(static_cast<JsonHandler::json_req_t>(identifer)) {
             case JsonHandler::json_req_t::users_list_message: {
                 ProcessUsersListRequest(tree);
                 break;
             }
-            case JsonHandler::json_req_t::authentication_message: {
-                ProcessAuthMessage(tree);
-                break;
-            }
             case JsonHandler::json_req_t::user_message: {
                 ProcessUserMessage(tree);
+                break;
+            }
+            case JsonHandler::json_req_t::authentication_message: {
+                ProcessAuthMessage(msg.first, tree);
                 break;
             }
             case JsonHandler::json_req_t::group_users_message: {
@@ -158,27 +196,20 @@ void DataProcess::ProcessNewMessage() const noexcept {
 
 void DataProcess::SendLastMessage() const noexcept {
     try {
-        auto msg = msgBroker->PullMessage();
-        std::cout << msg.first << " " << msg.second << std::endl;
-        connMan_.ResendUserMessage(msg.first, msg.second);
+        auto msg = MessageBroker::GetInstance()->PullMessage();
+        ConnectionManager::GetInstance()->ResendUserMessage(msg.first, msg.second);
     }
     catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
     }
 }
 
-std::string DataProcess::PullNewMessage() const noexcept {
-    std::string res;
-    try {
-        std::unique_lock lk(mutex_);
-        res = ioq_.front();
-        ioq_.pop();
-        msgInQueue--;
-    }
-    catch (std::exception& ex) {
-        ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
-    }
-    return res;
+std::pair<const MessageBroker::T, const std::string> DataProcess::PullNewMessage() const {
+    std::unique_lock lk(mutex_);
+    auto[id, msg] {ioq_.front()};
+    ioq_.pop();
+    msgInQueue--;
+    return std::make_pair(std::move(id), std::move(msg));
 }
 
-DataProcess dataProcessor;
+std::shared_ptr<DataProcess> DataProcess::dp_ = nullptr;

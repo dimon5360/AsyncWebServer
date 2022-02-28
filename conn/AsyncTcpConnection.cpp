@@ -42,16 +42,13 @@ void AsyncTcpConnection::HandleHandshake(const boost::system::error_code& error)
 
     std::cout << buf.data() << std::endl;
 
-    if (!error)
-    {
+    if (!error) {
         socket_.async_read_some(boost::asio::buffer(buf),
             [&](const boost::system::error_code& error,
                 std::size_t recvBytes) {
                     HandleAuth(error, recvBytes);
             });
-    }
-    else
-    {
+    } else {
         ConsoleLogger::Info(boost::str(boost::format(
             "HandleHandshake error user: %1% \"%2%\"\n") % id_ % error.message()));
         Shutdown();
@@ -63,26 +60,11 @@ void AsyncTcpConnection::HandleAuth(const boost::system::error_code& error,
 {
     if (!error)
     {
-        std::string in_hello_msg{ buf.data(), recvBytes };
+        std::string auth_message{ buf.data(), recvBytes };
         ConsoleLogger::Info(boost::str(boost::format("<< \"%1%\" [%2%]\n") % std::string{ buf.data(), recvBytes } % recvBytes));
 
-        if (in_hello_msg.starts_with(hello_msg_header)) {
-
-            std::string resp{ boost::str(boost::format("%1%%2%") % hello_msg % id_) };
-            ConsoleLogger::Info(boost::str(boost::format(">> \"%1%\" [%2%]\n") % resp % resp.size()));
-
-            socket_.async_write_some(boost::asio::buffer(resp),
-                [&](const boost::system::error_code& error,
-                    std::size_t bytes_transferred) {
-                        connMan_.SendUsersListToUser(id_); // TODO: send users list only to concrete user which just connected
-                        StartRead();
-                });
-        }
-        else {
-            ConsoleLogger::Info(boost::str(boost::format(
-                "Invalid hello message from user %1%: \"%2%\"\n") % id_ % in_hello_msg));
-            Shutdown();
-        }
+        DataProcess::GetInstance()->PushNewMessage(std::cref(id_), std::move(auth_message));
+        StartRead();
     }
     else {
         ConsoleLogger::Info(boost::str(boost::format(
@@ -110,7 +92,7 @@ void AsyncTcpConnection::HandleRead(const boost::system::error_code& error,
 
         to_lower(std::move(in_msg.data()));
 
-        dataProcessor.PushNewMessage(in_msg);
+        DataProcess::GetInstance()->PushNewMessage(std::cref(id_), std::move(in_msg));
         StartRead();
     }
     else {
@@ -139,5 +121,5 @@ void AsyncTcpConnection::Shutdown() {
 void AsyncTcpConnection::Close(const boost::system::error_code& error) {
     ConsoleLogger::Info(boost::str(boost::format("Close connection user: %1% \n") % id_));
     socket_.next_layer().close();
-    connMan_.RemoveConnection(id_);
+    ConnectionManager::GetInstance()->RemoveConnection(id_);
 }

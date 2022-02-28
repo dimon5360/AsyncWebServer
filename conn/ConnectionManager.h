@@ -4,7 +4,6 @@
  */
 #pragma once
 
- /* std C++ lib headers */
 #include <unordered_map>
 #include <mutex>
 #include <shared_mutex>
@@ -13,14 +12,15 @@
 #include <queue>
 #include <set>
 
-/* boost C++ lib headers */
 #include <boost/bind/placeholders.hpp>
 #include <boost/thread.hpp>
 
- /* local C++ headers */
+#include <spdlog/spdlog.h>
+
 #include "AsyncTcpConnection.h"
 #include "AsyncClient.h"
 #include "MessageBroker.h"
+
 #include "../log/Logger.h"
 #include "../data/UsersPool.h"
 
@@ -46,11 +46,11 @@ private:
             e1(r()),
             uniform_dist(min, max)
         {
-            std::cout << "Construct new random numbers generator class\n";
+            ConsoleLogger::Debug("Construct new random numbers generator class");
         }
 
         ~CustomRandomGen() {
-            std::cout << "Destruct random generator class\n";
+            ConsoleLogger::Debug("Destruct random generator class");
         }
 
         T GenRandomNumber() noexcept {
@@ -93,16 +93,29 @@ private:
         return connId;
     }
 
+    static std::shared_ptr<ConnectionManager> cm_;
+
 public:
 
+    // to avoid copying and creating any one instance
+    ConnectionManager(const ConnectionManager& mb) = delete;
+    ConnectionManager& operator=(const ConnectionManager& md) = delete;
+
     ConnectionManager() {
-        std::cout << "Construct connection manager\n";
+        ConsoleLogger::Debug("Construct connection manager");
         randEngine = std::make_unique<CustomRandomGen>(1, UsersPool::BROADCAST_ID-1);
         users = std::make_unique<UsersPool>(RESERVED_USERS_POOL_SIZE);
     }
 
     ~ConnectionManager() {
-        std::cout << "Destruct connection manager\n";
+        ConsoleLogger::Debug("Destruct connection manager");
+    }
+
+    static const std::shared_ptr<ConnectionManager>& GetInstance() {
+        if(!cm_) {
+            cm_ = std::make_shared<ConnectionManager>();
+        }
+        return cm_;
     }
 
     bool ManagerIsActive() {
@@ -132,7 +145,7 @@ public:
             users->RemoveExistedClient(connId);
         }
         catch (std::exception& ex) {
-            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
+            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%") % __FUNCTION__ % ex.what()));
         }
     }
 
@@ -144,7 +157,7 @@ public:
     void CloseAllConnections()
     {
         users->DisconnectAllClients();
-        std::cout << "All connections are closed\n";
+        ConsoleLogger::Debug("All connections are closed");
     }
 
     void SendUsersListToUser(const T& id) 
@@ -158,16 +171,15 @@ protected:
         try {
             if (Contains(connId)) {
                 users->GetClient(connId)->ResendMessage(user_msg);
-                std::cout << "Message for user #" << connId << " sended\n";
+                ConsoleLogger::Debug(boost::str(boost::format("%1%%2%%3%") % "Message for user #" % connId % " sended"));
             }
             else {
                 std::cout << "User #" << connId << " not found\n";
             }
         }
         catch (std::exception& ex) {
-            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
+            ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%") % __FUNCTION__ % ex.what()));
         }
     }
 };
 
-extern ConnectionManager connMan_;

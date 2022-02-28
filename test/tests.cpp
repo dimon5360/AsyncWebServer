@@ -4,7 +4,6 @@
  *
  *  @author     Kalmykov Dmitry
  *  @date       19.08.2021
- *  @modified   19.08.2021
  *  @version    1.0
  */
 

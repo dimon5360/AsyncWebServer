@@ -3,7 +3,6 @@
  *  @brief      Entry point of program
  *  @author     Kalmykov Dmitry
  *  @date       28.04.2021
- *  @modified   19.08.2021
  *  @version    1.0
  */
 
@@ -24,8 +23,8 @@
 
 #include <spdlog/spdlog.h>
 
-/* Build v.0.0.24 from 21.02.2021 */
-const uint32_t PATCH = 24;
+/* Build v.0.0.25 from 28.02.2021 */
+const uint32_t PATCH = 25;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
