@@ -42,6 +42,8 @@ int main()
 
     try
     {
+        auto postgresConnectionManager = std::make_unique<PostgresProcessor>();
+        
         /* separate thread to start tcp server */
         boost::asio::io_service ios;
         boost::thread_group threads;

@@ -18,6 +18,8 @@
 #include <boost/format.hpp>
 #include <boost/container_hash/hash.hpp>
 
+#include <openssl/sha.h>
+
 /* extern C++ lib pqxx headers */
 #include <pqxx/pqxx>
 #include <spdlog/spdlog.h>
@@ -47,6 +49,18 @@
 //     return output;
 // }
 
+const std::string createtableScript {
+    "CREATE TABLE IF NOT EXISTS userstable$167 (\
+            id SERIAL PRIMARY KEY,\
+            username VARCHAR UNIQUE NOT NULL,\
+            email VARCHAR UNIQUE NOT NULL,\
+            password VARCHAR NOT NULL,\
+            update_at timestamp NOT NULL,\
+            created_at timestamp NOT NULL,\
+            active BOOL\
+        )"
+};
+
 /*********************************************************
  *  @brief  Set connection to PostgreSQL database
  */
@@ -57,16 +71,15 @@ void PostgresProcessor::InitializeDatabaseConnection() {
         /* open db config file */
         auto dbcfg = std::make_shared<IConfig>();
         dbcfg->Open("postgres.ini");
-        std::string connection_string{
-            boost::str(boost::format("dbname=%1% user=%2% password=%3% host=%4% port=%5%") 
-            % dbcfg->GetConfigValueByKey("dbname") 
-            % dbcfg->GetConfigValueByKey("admin")
-            % dbcfg->GetConfigValueByKey("password")
-            % dbcfg->GetConfigValueByKey("host")
-            % dbcfg->GetConfigValueByKey("port"))};
+        std::string connection_string{"postgresql://dboperator:operatorpass123@localhost:5243/postgres"};
+        // std::string connection_string{
+        //     boost::str(boost::format("dbname=%1% user=%2% password=%3% host=%4% port=%5%") 
+        //     % dbcfg->GetConfigValueByKey("dbname") 
+        //     % dbcfg->GetConfigValueByKey("admin")
+        //     % dbcfg->GetConfigValueByKey("password")
+        //     % dbcfg->GetConfigValueByKey("host")
+        //     % dbcfg->GetConfigValueByKey("port"))};
 
-
-        // std::string connection_string{"postgresql://postgres:1234@localhost:5432/postgres"};
 
         std::cout << connection_string << "\n";
 
@@ -76,7 +89,10 @@ void PostgresProcessor::InitializeDatabaseConnection() {
         } 
         pqxx::work W{ C };
 
-        pqxx::result R{ W.exec(boost::str(boost::format("SELECT * FROM %1% where email = \'%2%\';\n") % dbcfg->GetConfigValueByKey("dbusertable") % "vasiliy@test.com")) };
+        // run sql command to create user stable if it is not exited
+        pqxx::result R{ W.exec(createtableScript) };
+
+        // pqxx::result R{ W.exec(boost::str(boost::format("SELECT * FROM %1% where email = \'%2%\';\n") % dbcfg->GetConfigValueByKey("dbusertable") % "vasiliy@test.com")) };
 
         if (R.size()) {
             spdlog::info(boost::str(boost::format("Found %1% users:") % R.size()));
@@ -97,20 +113,27 @@ void PostgresProcessor::InitializeDatabaseConnection() {
             using namespace boost::gregorian;
 
             spdlog::info("Add new user\n");
-            // ptime now = second_clock::local_time();
-            // std::string hash = SHA256("password");
-            
-            // std::string insert_request{
-            //     boost::str(boost::format("INSERT INTO %1% (email, username, password) VALUES(\'%2%\',\'%3%\',\'%4%\');")
-            //     % dbcfg.GetRecordByKey("dbusertable")
-            //     % "vasiliy@test.com"
-            //     % "Vasiok"
-            //     % hash)};
+            ptime now = second_clock::local_time();
 
-            // pqxx::result R{ W.exec(insert_request) };
-            // W.commit();
+            unsigned char obuf[20];
+            std::string pass = "vasyapassword";
+
+            // const char * hash = (const char*)SHA256((const unsigned char *)pass.c_str(), pass.size(), obuf);
+            // std::string s(hash, std::strlen(hash));
+
+            std::string insert_request{
+                boost::str(boost::format("INSERT INTO userstable$167 (username, email, password, update_at, created_at, active) VALUES(\'%1%\',\'%2%\',\'%3%\',\'%4%\',\'%5%\',\'%6%\');")
+                % "vasya123"
+                % "vasiliy@test.com"
+                % pass
+                % boost::posix_time::to_simple_string(boost::posix_time::second_clock::local_time())
+                % boost::posix_time::to_simple_string(boost::posix_time::second_clock::local_time())
+                % true)};
+
+            pqxx::result R{ W.exec(insert_request) };
         }
-        // C.close();
+        W.commit();
+        C.disconnect();
     }
     catch (std::exception const& e)
     {

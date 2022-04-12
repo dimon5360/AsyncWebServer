@@ -128,16 +128,6 @@ void JsonHandler::PrintTree(boost::property_tree::ptree& tree) {
     }
 }
 
-template<typename T>
-T JsonHandler::ParseJsonParam(const std::string& jsonReq, const std::string& param) {
-    auto tree = ConstructTree(jsonReq);
-    return tree.get<T>(param);
-}
-
-template<typename T>
-T JsonHandler::ParseTreeParam(const boost::property_tree::ptree& jsonTree, const std::string& param) {
-    return jsonTree.get<T>(param);
-}
 
 std::string JsonHandler::ConvertToString(const boost::property_tree::ptree& jsonTree) const noexcept {
 

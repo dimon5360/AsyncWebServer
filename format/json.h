@@ -40,13 +40,26 @@ private:
 
 public:
 
+    JsonHandler() {
+
+    }
+    ~JsonHandler() {
+
+    }
+
     boost::property_tree::ptree ConstructTree(const std::string& jsonString);
     boost::property_tree::ptree ConstructTree(std::string&& jsonString);
 
     template<typename T>
-    T ParseJsonParam(const std::string& jsonReq, const std::string& param);
+    T ParseJsonParam(const std::string& jsonReq, const std::string& param) {
+        auto tree = ConstructTree(jsonReq);
+        return tree.get<T>(param);
+    }
+
     template<typename T>
-    T ParseTreeParam(const boost::property_tree::ptree& jsonTree, const std::string& param);
+    T ParseTreeParam(const boost::property_tree::ptree& jsonTree, const std::string& param) {
+        return jsonTree.get<T>(param);
+    }
 
     std::string ConvertToString(const boost::property_tree::ptree& jsonTree) const noexcept;
 

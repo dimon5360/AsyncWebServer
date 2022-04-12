@@ -94,7 +94,7 @@ void DataProcess::ProcessUserMessage(const boost::property_tree::ptree& tree) co
     try {
         mongoUserMessagesStorage->InsertNewMessage(jsonHandler->ConvertToString(tree));
 
-        std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::dst_user_msg_token);
+        std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, const_cast<const std::string&>(JsonHandler::dst_user_msg_token));
         std::string userMsg = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::user_msg_token);
         uint32_t id = boost::lexical_cast<MessageBroker::T>(userId);
         MessageBroker::GetInstance()->PushMessage(id, std::move(userMsg));

@@ -84,8 +84,8 @@ void MongoProcessor::Insert(std::unique_ptr<mongocxx::collection> collection, co
     auto builder = bsoncxx::builder::stream::document{};
 
     std::unique_ptr<JsonHandler> handle = std::make_unique<JsonHandler>();
-    auto userId = handle->ParseTreeParam<std::string>(tree, "user id");
-    auto message = handle->ParseTreeParam<std::string>(tree, "message");
+    auto userId = handle->ParseTreeParam<std::string>(tree, std::move("user id"));
+    auto message = handle->ParseTreeParam<std::string>(tree, std::move("message"));
 
     bsoncxx::document::value doc_value = builder 
     << "user_id" << userId 

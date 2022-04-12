@@ -24,6 +24,8 @@
 
 #include "../conn/MessageBroker.h"
 #include "../db/MongoProcess.h"
+#include "../db/PostgresProcessor.h"
+
 #include "../format/json.h"
 #include "../log/Logger.h"
 
@@ -34,7 +36,6 @@ public:
     using record_t = std::pair<const MessageBroker::T, const std::string>;
 
     void StartDataProcessor();
-    // void PushNewMessage(const MessageBroker::T id, const std::string& msg) const noexcept;
     void PushNewMessage(const MessageBroker::T id, std::string&& msg) const noexcept;
 
 
@@ -49,8 +50,9 @@ public:
     DataProcess()
     {
         ConsoleLogger::Debug("Construct Data processor class");
-        jsonHandler = std::make_unique<JsonHandler>();
+        jsonHandler = std::make_shared<JsonHandler>();
         mongoUserMessagesStorage = std::make_unique<MongoProcessor>("mongo.ini");
+        postgresConnectionManager = std::make_unique<PostgresProcessor>();
         StartDataProcessor();
     }
 
@@ -72,8 +74,10 @@ private:
     mutable std::shared_mutex mutex_;
     mutable std::atomic_int16_t msgInQueue;
 
+    std::shared_ptr<JsonHandler> jsonHandler;
+
     std::unique_ptr<MongoProcessor> mongoUserMessagesStorage;
-    std::unique_ptr<JsonHandler> jsonHandler;
+    std::unique_ptr<PostgresProcessor> postgresConnectionManager;
 
     static std::shared_ptr<DataProcess> dp_;
 
