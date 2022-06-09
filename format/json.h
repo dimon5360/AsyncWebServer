@@ -9,6 +9,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include <iostream>
 #include <queue>
 #include <shared_mutex>
 
@@ -41,10 +42,10 @@ private:
 public:
 
     JsonHandler() {
-
+        std::cout << "Construct JsonHandler class\n";
     }
     ~JsonHandler() {
-
+        std::cout << "Destruct JsonHandler class\n";
     }
 
     boost::property_tree::ptree ConstructTree(const std::string& jsonString);

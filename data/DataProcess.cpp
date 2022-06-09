@@ -87,12 +87,11 @@ void DataProcess::HandleInOutMessages() const noexcept {
     }
 }
 
-
 // @brief correct logic, need to retransmit received message to another user (also keep in db)
 void DataProcess::ProcessUserMessage(const boost::property_tree::ptree& tree) const noexcept {
 
     try {
-        mongoUserMessagesStorage->InsertNewMessage(jsonHandler->ConvertToString(tree));
+        mongoUserMessagesStorage->InsertNewMessage(tree);
 
         std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, const_cast<const std::string&>(JsonHandler::dst_user_msg_token));
         std::string userMsg = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::user_msg_token);
@@ -114,11 +113,6 @@ void DataProcess::ProcessAuthMessage(const MessageBroker::T& id, const boost::pr
 
     try
     {
-        // TODO: process user authentication data
-
-        // std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::dst_user_msg_token);
-        // std::string timestamp = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::msg_timestamp_token);
-    
         // here must send request to DB service to validate user data
         namespace pt = boost::property_tree;
         pt::ptree ptree;
@@ -142,7 +136,7 @@ void DataProcess::ProcessAuthMessage(const MessageBroker::T& id, const boost::pr
 void DataProcess::ProcessUsersListRequest(const boost::property_tree::ptree& tree) const noexcept {
 
     try {
-        mongoUserMessagesStorage->InsertNewMessage(jsonHandler->ConvertToString(tree));
+        mongoUserMessagesStorage->InsertNewMessage(tree);
 
         std::string userId = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::src_user_msg_token);
         std::string datetime = jsonHandler->ParseTreeParam<std::string>(tree, JsonHandler::msg_timestamp_token);
@@ -158,10 +152,10 @@ void DataProcess::ProcessUsersListRequest(const boost::property_tree::ptree& tre
 void DataProcess::ProcessNewMessage() const noexcept {
 
     try {
-        decltype(auto) msg{ PullNewMessage() };
+        auto [id, msg] { PullNewMessage() };
 
         namespace pt = boost::property_tree;
-        pt::ptree tree = jsonHandler->ConstructTree(msg.second);
+        pt::ptree tree = jsonHandler->ConstructTree(msg);
 
         auto identifer = boost::lexical_cast<uint32_t>(jsonHandler->ParseTreeParam<std::string>(tree, 
                                                                 JsonHandler::msg_identificator_token));
@@ -171,12 +165,12 @@ void DataProcess::ProcessNewMessage() const noexcept {
                 ProcessUsersListRequest(tree);
                 break;
             }
-            case JsonHandler::json_req_t::user_message: {
-                ProcessUserMessage(tree);
+            case JsonHandler::json_req_t::authentication_message: {
+                ProcessAuthMessage(id, tree);
                 break;
             }
-            case JsonHandler::json_req_t::authentication_message: {
-                ProcessAuthMessage(msg.first, tree);
+            case JsonHandler::json_req_t::user_message: {
+                ProcessUserMessage(tree);
                 break;
             }
             case JsonHandler::json_req_t::group_users_message: {
@@ -196,8 +190,8 @@ void DataProcess::ProcessNewMessage() const noexcept {
 
 void DataProcess::SendLastMessage() const noexcept {
     try {
-        auto msg = MessageBroker::GetInstance()->PullMessage();
-        ConnectionManager::GetInstance()->ResendUserMessage(msg.first, msg.second);
+        auto [id, msg] = MessageBroker::GetInstance()->PullMessage();
+        ConnectionManager::GetInstance()->ResendUserMessage(id, msg);
     }
     catch (std::exception& ex) {
         ConsoleLogger::Error(boost::str(boost::format("Exception %1%: %2%\n") % __FUNCTION__ % ex.what()));
@@ -209,7 +203,7 @@ std::pair<const MessageBroker::T, const std::string> DataProcess::PullNewMessage
     auto[id, msg] {ioq_.front()};
     ioq_.pop();
     msgInQueue--;
-    return std::make_pair(std::move(id), std::move(msg));
+    return {std::move(id), std::move(msg)};
 }
 
 std::shared_ptr<DataProcess> DataProcess::dp_ = nullptr;

@@ -27,11 +27,11 @@ public:
     MessageBroker& operator=(const MessageBroker& md) = delete;
 
     MessageBroker() {
-        spdlog::info("Construct MessageBroker class");
+        std::cout << "Construct MessageBroker class\n";
     }
 
     ~MessageBroker() {
-        spdlog::info("Destruct MessageBroker class");
+        std::cout << "Destruct MessageBroker class\n";
     }
 
     static const std::shared_ptr<MessageBroker>& GetInstance() {

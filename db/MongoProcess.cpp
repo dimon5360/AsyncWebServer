@@ -36,12 +36,12 @@ void MongoProcessor::InitializeConnection(std::string&& config) noexcept {
 }
 
 MongoProcessor::MongoProcessor(std::string&& connectingConfig) {
-    MongoLog("Construct MongoProcess class\n");  
+    std::cout << "Construct MongoProcessor class\n";
     InitializeConnection(std::move(connectingConfig));
 }
 
 MongoProcessor::~MongoProcessor() {
-    MongoLog("Destruct MongoProcess class\n");    
+    std::cout << "Destruct MongoProcessor class\n";
 }
 
 void MongoProcessor::InsertNewMessage(std::string&& msg) noexcept {
@@ -50,6 +50,17 @@ void MongoProcessor::InsertNewMessage(std::string&& msg) noexcept {
         mongocxx::database db = client[dbcfg->GetConfigValueByKey("msgdb")];
         auto collection = std::make_unique<mongocxx::collection>(db[dbcfg->GetConfigValueByKey("msgtable")]);
         Insert(std::move(collection), std::cref(msg));
+    } catch (std::exception &ex) {
+        MongoError(boost::str(boost::format("%1% %2%") % "Insert message error: " % ex.what()));
+    }
+}
+
+void MongoProcessor::InsertNewMessage(const boost::property_tree::ptree& tree) noexcept {
+    try {
+        mongocxx::client client{mongocxx::uri{connectingString_}};
+        mongocxx::database db = client[dbcfg->GetConfigValueByKey("msgdb")];
+        auto collection = std::make_unique<mongocxx::collection>(db[dbcfg->GetConfigValueByKey("msgtable")]);
+        Insert(std::move(collection), std::cref(tree));
     } catch (std::exception &ex) {
         MongoError(boost::str(boost::format("%1% %2%") % "Insert message error: " % ex.what()));
     }
@@ -76,6 +87,7 @@ void MongoProcessor::Insert(std::unique_ptr<mongocxx::collection> collection, co
     
     bsoncxx::stdx::optional<mongocxx::result::insert_one> result = collection->insert_one(view);
     if(!result) {
+        spdlog::error("MongoDB insert function is failed");
         // TODO:
     }
 }
@@ -84,8 +96,10 @@ void MongoProcessor::Insert(std::unique_ptr<mongocxx::collection> collection, co
     auto builder = bsoncxx::builder::stream::document{};
 
     std::unique_ptr<JsonHandler> handle = std::make_unique<JsonHandler>();
-    auto userId = handle->ParseTreeParam<std::string>(tree, std::move("user id"));
-    auto message = handle->ParseTreeParam<std::string>(tree, std::move("message"));
+    // auto userId = handle->ParseTreeParam<std::string>(tree, std::move("user id"));
+    // auto message = handle->ParseTreeParam<std::string>(tree, std::move("message"));
+    auto userId = handle->ParseTreeParam<std::string>(tree, JsonHandler::dst_user_msg_token);
+    auto message = handle->ParseTreeParam<std::string>(tree, JsonHandler::user_msg_token);
 
     bsoncxx::document::value doc_value = builder 
     << "user_id" << userId 
@@ -96,6 +110,7 @@ void MongoProcessor::Insert(std::unique_ptr<mongocxx::collection> collection, co
     
     bsoncxx::stdx::optional<mongocxx::result::insert_one> result = collection->insert_one(view);
     if(!result) {
+        spdlog::error("MongoDB insert function is failed");
         // TODO:
     }
 }

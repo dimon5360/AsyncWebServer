@@ -4,6 +4,7 @@
 /build/
 
 *.ini
+*.txt
 
 *.key
 *.crt
@@ -13,3 +14,5 @@
 
 *.json
 *.log
+
+*.yaml

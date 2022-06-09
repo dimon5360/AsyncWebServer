@@ -23,13 +23,12 @@ uint64_t ConsoleLogger::GetCurrTimeMs() noexcept {
 }
 
 void ConsoleLogger::Info(const std::string&& log) noexcept {
-
-    spdlog::info(log);
+    std::cout << log << std::endl;
 }
 
 void ConsoleLogger::Debug(const std::string&& log) noexcept {
 #ifdef DEBUG_ENABLE
-    spdlog::info(log);
+    std::cout << log << std::endl;
 #endif /* DEBUG_ENABLE */
 }
 

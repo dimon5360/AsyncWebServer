@@ -55,4 +55,5 @@ public:
     ~MongoProcessor();
 
     void InsertNewMessage(std::string&& msg) noexcept;
+    void InsertNewMessage(const boost::property_tree::ptree& tree) noexcept;
 };

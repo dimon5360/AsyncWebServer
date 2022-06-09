@@ -49,7 +49,7 @@ public:
  
     DataProcess()
     {
-        ConsoleLogger::Debug("Construct Data processor class");
+        std::cout << "Construct DataProcess class\n";
         jsonHandler = std::make_shared<JsonHandler>();
         mongoUserMessagesStorage = std::make_unique<MongoProcessor>("mongo.ini");
         postgresConnectionManager = std::make_unique<PostgresProcessor>();
@@ -57,7 +57,7 @@ public:
     }
 
     ~DataProcess() {
-        ConsoleLogger::Debug("Destruct Data processor class");
+        std::cout << "Destruct DataProcess class\n";
     }
 
     static const std::shared_ptr<DataProcess>& GetInstance() {

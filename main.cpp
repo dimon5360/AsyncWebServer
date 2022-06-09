@@ -23,8 +23,8 @@
 
 #include <spdlog/spdlog.h>
 
-/* Build v.0.0.25 from 28.02.2021 */
-const uint32_t PATCH = 25;
+/* Build v.0.0.26 from 09.06.2022 */
+const uint32_t PATCH = 26;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
@@ -42,8 +42,6 @@ int main()
 
     try
     {
-        auto postgresConnectionManager = std::make_unique<PostgresProcessor>();
-        
         /* separate thread to start tcp server */
         boost::asio::io_service ios;
         boost::thread_group threads;
