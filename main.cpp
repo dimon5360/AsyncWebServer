@@ -6,15 +6,14 @@
  *  @version    1.0
  */
 
- /* local C++ headers */
 #include "serv/AsyncTcpServer.h"
 #include "db/PostgresProcessor.h"
 #include "test/tests.h"
 
- /* std C++ lib headers */
+#include "db/KafkaProcess.h"
+
 #include <iostream>
 
- /* boost C++ lib headers */
 #include <boost/format.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -37,6 +36,9 @@ int main()
     return static_cast<int32_t>(init_unit_tests());
 #else 
 
+    std::unique_ptr kafka = std::make_unique<KafkaProcess>();
+    return EXIT_SUCCESS;
+    
     const std::string shello = "Hello. Application version is %1%.%2%.%3%\n";
     spdlog::info(boost::str(boost::format(shello) % MAJOR % MINOR % PATCH));
 
