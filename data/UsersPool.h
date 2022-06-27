@@ -7,8 +7,8 @@
 #include <shared_mutex>
 #include <set>
 
-#include "../conn/AsyncClient.h"
-#include "../conn/AsyncTcpConnection.h"
+#include "../core/AsyncClient.h"
+#include "../core/AsyncTcpConnection.h"
 #include "../log/Logger.h"
 
 #define USE_USERS_POOL

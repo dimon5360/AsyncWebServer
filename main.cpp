@@ -6,13 +6,17 @@
  *  @version    1.0
  */
 
-#include "serv/AsyncTcpServer.h"
+#include "core/AsyncTcpServer.h"
 #include "db/PostgresProcessor.h"
 #include "test/tests.h"
 
 #include "db/KafkaProcess.h"
 
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
+#include <string>
+#include <thread>
 
 #include <boost/format.hpp>
 #include <boost/asio.hpp>
@@ -22,22 +26,16 @@
 
 #include <spdlog/spdlog.h>
 
-/* Build v.0.0.26 from 09.06.2022 */
-const uint32_t PATCH = 26;
+/* Build v.0.0.27 from 27.06.2022 */
+const uint32_t PATCH = 27;
 const uint32_t MINOR = 0;
 const uint32_t MAJOR = 0;
 
-/**********************************************************
- *  @brief  entry point 
- */
 int main()
 {
 #if UNIT_TEST    
     return static_cast<int32_t>(init_unit_tests());
 #else 
-
-    std::unique_ptr kafka = std::make_unique<KafkaProcess>();
-    return EXIT_SUCCESS;
     
     const std::string shello = "Hello. Application version is %1%.%2%.%3%\n";
     spdlog::info(boost::str(boost::format(shello) % MAJOR % MINOR % PATCH));

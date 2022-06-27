@@ -43,7 +43,6 @@ class MongoProcessor {
     static void MongoLog(std::string&& logMsg);
     static void MongoError(std::string&& errMsg);
     
-    void Insert(std::unique_ptr<mongocxx::collection> collection, const std::string& json) noexcept;
     void Insert(std::unique_ptr<mongocxx::collection> collection, const boost::property_tree::ptree& tree) noexcept;
     void InitializeConnection(std::string&& config) noexcept;
     
@@ -54,6 +53,5 @@ public:
     MongoProcessor(std::string&& connectingConfig);
     ~MongoProcessor();
 
-    void InsertNewMessage(std::string&& msg) noexcept;
     void InsertNewMessage(const boost::property_tree::ptree& tree) noexcept;
 };

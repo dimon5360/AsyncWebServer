@@ -7,15 +7,15 @@
  *  @version    0.1
  */
 
- #include "string.h"
+#include "DataProcess.h"
+#include "string.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include "DataProcess.h"
-#include "../conn/ConnectionManager.h"
-#include "../conn/MessageBroker.h"
-#include "../conn/AsyncClient.h"
+#include "MessageBroker.h"
+#include "../core/ConnectionManager.h"
+#include "../core/AsyncClient.h"
 #include "../format/json.h"
 
 void DataProcess::StartDataProcessor() {

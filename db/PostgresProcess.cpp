@@ -7,47 +7,24 @@
  *  @version    0.1
  */
 
-/* std C++ lib headers */
 #include <iostream>
 #include <ctime>
 #include <cstdint>
 #include <fstream>
 
-/* boost C++ lib headers */
 #include <boost/date_time.hpp>
 #include <boost/format.hpp>
 #include <boost/container_hash/hash.hpp>
 
 #include <openssl/sha.h>
 
-/* extern C++ lib pqxx headers */
 #include <pqxx/pqxx>
 #include <spdlog/spdlog.h>
-// #include "cryptopp/base64.h"
-// #include "cryptopp/sha.h"
-// #include "cryptopp/hmac.h"
 
-/* local C++ headers */
 #include "PostgresProcessor.h"
 
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
-
-// std::string SHA256(std::string data)
-// {
-//     using namespace CryptoPP;
-//     byte const* pbData = (byte*)data.data();
-//     unsigned int nDataLen = data.size();
-//     byte abDigest[CryptoPP::SHA256::DIGESTSIZE];
-
-//     CryptoPP::SHA256().CalculateDigest(abDigest, pbData, nDataLen); 
-//     CryptoPP::Base64Encoder encoder;
-//     std::string output;
-//     encoder.Attach(new CryptoPP::StringSink(output));
-//     encoder.Put(abDigest, sizeof(abDigest));
-//     encoder.MessageEnd();
-//     return output;
-// }
 
 const std::string createtableScript {
     "CREATE TABLE IF NOT EXISTS userstable$167 (\
@@ -71,17 +48,7 @@ void PostgresProcessor::InitializeDatabaseConnection() {
         /* open db config file */
         auto dbcfg = std::make_shared<IConfig>();
         dbcfg->Open("postgres.ini");
-        std::string connection_string{"postgresql://dboperator:operatorpass123@localhost:5243/postgres"};
-        // std::string connection_string{
-        //     boost::str(boost::format("dbname=%1% user=%2% password=%3% host=%4% port=%5%") 
-        //     % dbcfg->GetConfigValueByKey("dbname") 
-        //     % dbcfg->GetConfigValueByKey("admin")
-        //     % dbcfg->GetConfigValueByKey("password")
-        //     % dbcfg->GetConfigValueByKey("host")
-        //     % dbcfg->GetConfigValueByKey("port"))};
-
-
-        std::cout << connection_string << "\n";
+        std::string connection_string{dbcfg->GetConfigValueByKey("postgres_connection_string")};
 
         pqxx::connection C{ connection_string };
         if (C.is_open()) {
@@ -89,10 +56,11 @@ void PostgresProcessor::InitializeDatabaseConnection() {
         } 
         pqxx::work W{ C };
 
-        // run sql command to create user stable if it is not exited
+
         pqxx::result R{ W.exec(createtableScript) };
 
-        // pqxx::result R{ W.exec(boost::str(boost::format("SELECT * FROM %1% where email = \'%2%\';\n") % dbcfg->GetConfigValueByKey("dbusertable") % "vasiliy@test.com")) };
+        R = W.exec(boost::str(boost::format("SELECT * FROM %1% where email = \'%2%\';\n") % 
+                dbcfg->GetConfigValueByKey("dbusertable") % "vasiliy@test.com"));
 
         if (R.size()) {
             spdlog::info(boost::str(boost::format("Found %1% users:") % R.size()));
@@ -118,11 +86,9 @@ void PostgresProcessor::InitializeDatabaseConnection() {
             unsigned char obuf[20];
             std::string pass = "vasyapassword";
 
-            // const char * hash = (const char*)SHA256((const unsigned char *)pass.c_str(), pass.size(), obuf);
-            // std::string s(hash, std::strlen(hash));
-
             std::string insert_request{
-                boost::str(boost::format("INSERT INTO userstable$167 (username, email, password, update_at, created_at, active) VALUES(\'%1%\',\'%2%\',\'%3%\',\'%4%\',\'%5%\',\'%6%\');")
+                boost::str(boost::format("INSERT INTO %1% (username, email, password, update_at, created_at, active) VALUES(\'%2%\',\'%3%\',\'%4%\',\'%5%\',\'%6%\',\'%7%\');")
+                % dbcfg->GetConfigValueByKey("dbusertable")
                 % "vasya123"
                 % "vasiliy@test.com"
                 % pass

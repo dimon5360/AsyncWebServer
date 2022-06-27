@@ -3,7 +3,6 @@
 
 class KafkaProcess
 {
-
     void CreateKafkaProducer();
     void CreateKafkaConsumer();
 
